@@ -56,19 +56,25 @@ const loadingMsg = document.createElement("p");
 loadingMsg.innerHTML = "Loading...";
 document.body.appendChild(loadingMsg);
 
+const desc = document.createElement("p");
+desc.innerHTML = "単語を入力してください";
+
 const searchResults = document.createElement("p");
 
 readAJ().then(
 	(value) => {
 		const title = document.createElement("p");
 		title.innerHTML = "accentjiten [alpha]";
-		const desc = document.createElement("p");
-		desc.innerHTML = "単語を入力してください";
 		document.body.removeChild(loadingMsg);
 		document.body.appendChild(title);
-		document.body.appendChild(desc);
 		document.body.appendChild(input);
+		document.body.appendChild(desc);
 		document.body.appendChild(searchResults);
+		const descRemoveListener = (event) => {
+			document.body.removeChild(desc);
+			input.removeEventListener("input", descRemoveListener);
+		};
+		input.addEventListener("input", descRemoveListener);
 		input.addEventListener("input", (event) => {
 			ajSearch(input.value);
 			searchResults.innerHTML = entriesToHTML();
