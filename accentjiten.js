@@ -79,6 +79,7 @@ readAJ().then(
 			ajSearch(input.value);
 			searchResults.innerHTML = entriesToHTML();
 		});
+		input.focus();
 	},
 	(error) => {
 		console.log(error);
