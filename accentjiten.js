@@ -2,7 +2,6 @@
 
 accentjiten - Japanese pitch accent dictionary
 https://github.com/accentjiten
-
 Copyright (c) 2024 accentjiten
 
 */
@@ -143,6 +142,7 @@ function ajInit() {
 		const isNakaguro = hiraganaMoras[0] === "・" ? true : false;
 		
 		syllableFormPool[i] = { hiraganaMoras: hiraganaMoras, katakanaMoras: katakanaMoras, romaji: romaji,
+			hiraganaSyllable: hiraganaMoras.join(""), katakanaSyllable: katakanaMoras.join(""),
 			poolIndex: i, isNakaguro: isNakaguro };
 	}
 	
@@ -255,8 +255,9 @@ function ajSearch(query) {
 						childNodes.add(childNode);
 					}
 				}
-				for (const substring of syllableForm.hiraganaMoras) {
-					const substringMatch = matchSubstring(formattedQuery, i, substring);
+				{
+					const hiraganaSyllable = syllableForm.hiraganaSyllable;
+					const substringMatch = matchSubstring(formattedQuery, i, hiraganaSyllable);
 					if (substringMatch) {
 						const childNode = i + substringMatch.nMatchedChars < nodes.length
 							? nodes[i + substringMatch.nMatchedChars]
@@ -264,8 +265,9 @@ function ajSearch(query) {
 						childNodes.add(childNode);
 					}
 				}
-				for (const substring of syllableForm.katakanaMoras) {
-					const substringMatch = matchSubstring(formattedQuery, i, substring);
+				{
+					const katakanaSyllable = syllableForm.katakanaSyllable;
+					const substringMatch = matchSubstring(formattedQuery, i, katakanaSyllable);
 					if (substringMatch) {
 						const childNode = i + substringMatch.nMatchedChars < nodes.length
 							? nodes[i + substringMatch.nMatchedChars]
