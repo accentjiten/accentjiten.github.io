@@ -96,7 +96,7 @@ async function readAJ() {
 		xhr.open("GET", "accentjiten.dat.zip");
 		xhr.send();
 	});
-	const unzippedArrayBuffer = await new Promise((resolve, reject) => {
+	const uint8Array = await new Promise((resolve, reject) => {
 		const zip = new JSZip();
 		zip.loadAsync(zippedArrayBuffer).then((files) => {
 			resolve(files.file("accentjiten.dat").async("uint8array"));
@@ -104,7 +104,7 @@ async function readAJ() {
 			reject(error);
 		});
 	});
-	dataPoolArr = new Uint8Array(unzippedArrayBuffer);
+	dataPoolArr = uint8Array;
 	ajInit();
 }
 
