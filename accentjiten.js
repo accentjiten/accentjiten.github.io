@@ -191,12 +191,15 @@ function ajSearch(query) {
 			const match2 = matchSyllables(entryOffset, syllableTrie);
 			switch (match2) {
 				case NO_MATCH:
-					break;
-				case EXACT_MATCH:
-					exactMatchedEntryOffsetsArr[exactMatchedEntryOffsetsN++] = entryOffset;
+					if (match1 === NON_EXACT_MATCH) {
+						nonExactMatchedEntryOffsetsArr[nonExactMatchedEntryOffsetsN++] = entryOffset;
+					}
 					break;
 				case NON_EXACT_MATCH:
 					nonExactMatchedEntryOffsetsArr[nonExactMatchedEntryOffsetsN++] = entryOffset;
+					break;
+				case EXACT_MATCH:
+					exactMatchedEntryOffsetsArr[exactMatchedEntryOffsetsN++] = entryOffset;
 					break;
 			}
 		}
@@ -220,13 +223,14 @@ function ajSearch(query) {
 	
 	function matchWordVariant(stringOffset, query) {
 		const stringLength = string_getLength(stringOffset);
-		for (let i = 0; i < query.length; i++) {
-			if (i >= stringLength) return NON_EXACT_MATCH;
+		const queryLength = query.length;
+		for (let i = 0; i < queryLength; i++) {
+			if (i >= stringLength) return null;
 			const stringChar = string_getChar(stringOffset, i);
 			const queryChar = query.charCodeAt(i);
 			if (stringChar !== queryChar) return NO_MATCH;
 		}
-		return EXACT_MATCH;
+		return stringLength === queryLength ? EXACT_MATCH : NON_EXACT_MATCH;
 	}
 	
 	function createSyllableTrie(query) {
