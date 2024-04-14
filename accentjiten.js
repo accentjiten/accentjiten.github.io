@@ -184,17 +184,49 @@ function ajSearch(query) {
 	const entryArrayLength = entryArray_getLength();
 	for (let i = 0; i < entryArrayLength; i++) {
 		const entryOffset = entryArray_getEntry_entryOffset(i);
-		const match = matchSyllables(entryOffset, syllableTrie);
-		switch (match) {
-			case NO_MATCH:
-				break;
-			case EXACT_MATCH:
-				exactMatchedEntryOffsetsArr[exactMatchedEntryOffsetsN++] = entryOffset;
-				break;
-			case NON_EXACT_MATCH:
-				nonExactMatchedEntryOffsetsArr[nonExactMatchedEntryOffsetsN++] = entryOffset;
-				break;
+		const match1 = matchWordVariants(entryOffset, query);
+		if (match1 === EXACT_MATCH) {
+			exactMatchedEntryOffsetsArr[exactMatchedEntryOffsetsN++] = entryOffset;
+		} else {
+			const match2 = matchSyllables(entryOffset, syllableTrie);
+			switch (match2) {
+				case NO_MATCH:
+					break;
+				case EXACT_MATCH:
+					exactMatchedEntryOffsetsArr[exactMatchedEntryOffsetsN++] = entryOffset;
+					break;
+				case NON_EXACT_MATCH:
+					nonExactMatchedEntryOffsetsArr[nonExactMatchedEntryOffsetsN++] = entryOffset;
+					break;
+			}
 		}
+	}
+	
+	function matchWordVariants(entryOffset, query) {
+		const stringArrayOffset = entry_getWordVariants_stringArrayOffset(entryOffset);
+		const stringArrayLength = stringArray_getLength(stringArrayOffset);
+		let anyNonExactMatch = false;
+		for (let i = 0; i < stringArrayLength; i++) {
+			const stringOffset = stringArray_getString_stringOffset(stringArrayOffset, i);
+			const match = matchWordVariant(stringOffset, query);
+			switch (match) {
+				case NO_MATCH: break;
+				case EXACT_MATCH: return EXACT_MATCH;
+				case NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
+			}
+		}
+		return anyNonExactMatch ? NON_EXACT_MATCH : NO_MATCH;
+	}
+	
+	function matchWordVariant(stringOffset, query) {
+		const stringLength = string_getLength(stringOffset);
+		for (let i = 0; i < query.length; i++) {
+			if (i >= stringLength) return NON_EXACT_MATCH;
+			const stringChar = string_getChar(stringOffset, i);
+			const queryChar = query.charCodeAt(i);
+			if (stringChar !== queryChar) return NO_MATCH;
+		}
+		return EXACT_MATCH;
 	}
 	
 	function createSyllableTrie(query) {
