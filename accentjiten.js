@@ -57,7 +57,7 @@ loadingMsg.innerHTML = "Loading...";
 document.body.appendChild(loadingMsg);
 
 const desc = document.createElement("p");
-desc.innerHTML = "単語を入力してください";
+desc.innerHTML = "Japanese pitch accent dictionary<br>(How to use: enter a word<br>For example \"konnichiwa\")";
 
 const searchResults = document.createElement("p");
 
