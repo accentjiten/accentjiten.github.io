@@ -59,7 +59,7 @@ loadingMsg.innerHTML = "Loading...";
 document.body.appendChild(loadingMsg);
 
 const desc = document.createElement("p");
-desc.innerHTML = "Japanese pitch accent dictionary<br>(How to use: search a word<br>Try typing \"konnichiwa\")";
+desc.innerHTML = "日本語アクセント辞典<br>使い方：単語を入力で検索する<br><br>Japanese pitch accent dictionary<br>(How to use: search a word<br>Try typing \"konnichiwa\")";
 
 const searchResults = document.createElement("p");
 
