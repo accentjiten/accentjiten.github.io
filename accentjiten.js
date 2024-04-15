@@ -49,6 +49,8 @@ var NO_MATCH = 0;
 var EXACT_MATCH = 1;
 var NON_EXACT_MATCH = 2;
 
+var MAX_RESULTS = 500;
+
 const input = document.createElement("input");
 input.type = "text";
 
@@ -57,7 +59,7 @@ loadingMsg.innerHTML = "Loading...";
 document.body.appendChild(loadingMsg);
 
 const desc = document.createElement("p");
-desc.innerHTML = "Japanese pitch accent dictionary<br>(How to use: enter a word<br>For example \"konnichiwa\")";
+desc.innerHTML = "Japanese pitch accent dictionary<br>(How to use: search a word<br>Try typing \"konnichiwa\")";
 
 const searchResults = document.createElement("p");
 
@@ -70,14 +72,22 @@ readAJ().then(
 		document.body.appendChild(input);
 		document.body.appendChild(desc);
 		document.body.appendChild(searchResults);
-		const descRemoveListener = (event) => {
-			document.body.removeChild(desc);
-			input.removeEventListener("input", descRemoveListener);
-		};
-		input.addEventListener("input", descRemoveListener);
 		input.addEventListener("input", (event) => {
-			ajSearch(input.value);
+			const query = input.value;
+			ajSearch(query);
 			searchResults.innerHTML = entriesToHTML();
+			const nResults = exactMatchedEntryOffsetsN + nonExactMatchedEntryOffsetsN;
+			if (nResults > MAX_RESULTS) {
+				desc.innerHTML = MAX_RESULTS + "件を表示中 - \"<b>" + escapeHTML(query) + "</b>\"";
+			} else if (nResults === 0) {
+				if (query) {
+					desc.innerHTML = "何も見つかりませんでした - \"<b>" + escapeHTML(query) + "</b>\"";
+				} else {
+					desc.innerHTML = "";
+				}
+			} else {
+				desc.innerHTML = nResults + "件 - \"<b>" + escapeHTML(query) + "</b>\"";
+			}
 		});
 		input.focus();
 	},
@@ -354,7 +364,7 @@ function entriesToHTML() {
 	let nEntries = 0;
 	
 	for (let i = 0; i < exactMatchedEntryOffsetsN; i++) {
-		if (nEntries > 500) break;
+		if (nEntries > MAX_RESULTS) break;
 		const entryOffset = exactMatchedEntryOffsetsArr[i];
 		html += entryToHTML(entryOffset);
 		html += "<hr>";
@@ -362,7 +372,7 @@ function entriesToHTML() {
 	}
 	
 	for (let i = 0; i < nonExactMatchedEntryOffsetsN; i++) {
-		if (nEntries > 500) break;
+		if (nEntries > MAX_RESULTS) break;
 		const entryOffset = nonExactMatchedEntryOffsetsArr[i];
 		html += entryToHTML(entryOffset);
 		html += "<hr>";
@@ -622,4 +632,9 @@ function sourceArray_toObject(sourceArrayOffset) {
 		array[i] = source;
 	}
 	return array;
+}
+
+function escapeHTML(str) {
+	return str.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+		.replaceAll('"', "&quot;").replaceAll("'", "&#039;").replaceAll(" ", "&nbsp;");
 }
