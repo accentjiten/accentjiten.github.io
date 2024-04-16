@@ -452,7 +452,7 @@ function entriesToHTML() {
 			html += "</small></small>";
 			html += "</div>";
 			if (i !== pronunciationArrayLength - 1) {
-				html += "／";
+				html += "　";
 			}
 		}
 		return html;
