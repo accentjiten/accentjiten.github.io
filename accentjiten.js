@@ -396,6 +396,8 @@ function entriesToHTML() {
 				pronunciationArray_getPronunciation_pronunciationOffset(pronunciationArrayOffset, i);
 			const syllableArrayOffset = pronunciation_getReading_syllableArrayOffset(pronunciationOffset);
 			const accent = pronunciation_getAccent(pronunciationOffset);
+			const sourceArrayOffset = pronunciation_getSources_sourceArrayOffset(pronunciationOffset);
+			
 			const syllableArrayLength = syllableArray_getLength(syllableArrayOffset);
 			html += "<div class=\"tonetext\">";
 			let nMora = 0;
@@ -442,6 +444,12 @@ function entriesToHTML() {
 			if (nMora === accent) {
 				html += "<span class=\"lowtoneprevioushigh\"></span>";
 			}
+			
+			const sourceArrayLength = sourceArray_getLength(sourceArrayOffset);
+			html += "<small style=\"color:#999999;\"><small>";
+			html += " ";
+			html += sourceArrayLength;
+			html += "</small></small>";
 			html += "</div>";
 			if (i !== pronunciationArrayLength - 1) {
 				html += "／";
