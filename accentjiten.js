@@ -449,6 +449,7 @@ function entriesToHTML() {
 			html += "<small style=\"color:#999999;\"><small>";
 			html += " ";
 			html += sourceArrayLength;
+			html += "x";
 			html += "</small></small>";
 			html += "</div>";
 			if (i !== pronunciationArrayLength - 1) {
