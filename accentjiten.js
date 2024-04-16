@@ -448,9 +448,8 @@ function entriesToHTML() {
 			
 			const sourceArrayLength = sourceArray_getLength(sourceArrayOffset);
 			html += "<small style=\"color:#999999;\"><small>";
-			html += " ";
+			html += " x";
 			html += sourceArrayLength;
-			html += "x";
 			html += "</small></small>";
 			if (i !== pronunciationArrayLength - 1) {
 				html += "　";
