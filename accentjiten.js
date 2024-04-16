@@ -444,6 +444,7 @@ function entriesToHTML() {
 			if (nMora === accent) {
 				html += "<span class=\"lowtoneprevioushigh\"></span>";
 			}
+			html += "div";
 			
 			const sourceArrayLength = sourceArray_getLength(sourceArrayOffset);
 			html += "<small style=\"color:#999999;\"><small>";
@@ -451,7 +452,6 @@ function entriesToHTML() {
 			html += sourceArrayLength;
 			html += "x";
 			html += "</small></small>";
-			html += "</div>";
 			if (i !== pronunciationArrayLength - 1) {
 				html += "　";
 			}
