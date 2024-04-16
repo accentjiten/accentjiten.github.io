@@ -444,7 +444,7 @@ function entriesToHTML() {
 			if (nMora === accent) {
 				html += "<span class=\"lowtoneprevioushigh\"></span>";
 			}
-			html += "div";
+			html += "</div>";
 			
 			const sourceArrayLength = sourceArray_getLength(sourceArrayOffset);
 			html += "<small style=\"color:#999999;\"><small>";
