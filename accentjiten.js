@@ -447,10 +447,12 @@ function entriesToHTML() {
 			html += "</div>";
 			
 			const sourceArrayLength = sourceArray_getLength(sourceArrayOffset);
-			html += "<small style=\"color:#999999;\"><small>";
-			html += " x";
-			html += sourceArrayLength;
-			html += "</small></small>";
+			if (sourceArrayLength > 1) {
+				html += "<span style=\"vertical-align:middle;\"><small style=\"color:#999999;\"><small>";
+				html += "×";
+				html += sourceArrayLength;
+				html += "</small></small></span>";
+			}
 			if (i !== pronunciationArrayLength - 1) {
 				html += "　";
 			}
