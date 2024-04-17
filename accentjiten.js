@@ -78,7 +78,7 @@ readAJ().then(
 			searchResults.innerHTML = entriesToHTML();
 			const nResults = exactMatchedEntryOffsetsN + nonExactMatchedEntryOffsetsN;
 			if (nResults > MAX_RESULTS) {
-				desc.innerHTML = MAX_RESULTS + "件を表示中 - \"<b>" + escapeHTML(query) + "</b>\"";
+				desc.innerHTML = "全" + nResults + "件中1～" + MAX_RESULTS + "件を表示中 - \"<b>" + escapeHTML(query) + "</b>\"";
 			} else if (nResults === 0) {
 				if (query) {
 					desc.innerHTML = "何も見つかりませんでした - \"<b>" + escapeHTML(query) + "</b>\"";
