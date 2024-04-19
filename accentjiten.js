@@ -51,7 +51,7 @@ var NON_EXACT_MATCH = 2;
 
 var MAX_RESULTS = 500;
 
-const inputLabel = document.createElement("inputLabel");
+const inputLabel = document.createElement("span");
 inputLabel.innerHTML = "🔍︎&nbsp;";
 
 const input = document.createElement("input");
