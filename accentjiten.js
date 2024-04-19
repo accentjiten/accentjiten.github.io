@@ -51,8 +51,12 @@ var NON_EXACT_MATCH = 2;
 
 var MAX_RESULTS = 500;
 
+const inputLabel = document.createElement("inputLabel");
+inputLabel.innerHTML = "🔍︎&nbsp;";
+
 const input = document.createElement("input");
 input.type = "text";
+input.style.fontSize = "20px";
 
 const loadingMsg = document.createElement("p");
 loadingMsg.innerHTML = "Loading...";
@@ -69,6 +73,7 @@ readAJ().then(
 		title.innerHTML = "accentjiten [alpha]";
 		document.body.removeChild(loadingMsg);
 		document.body.appendChild(title);
+		document.body.appendChild(inputLabel);
 		document.body.appendChild(input);
 		document.body.appendChild(desc);
 		document.body.appendChild(searchResults);
