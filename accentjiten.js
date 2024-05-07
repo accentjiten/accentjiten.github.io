@@ -60,13 +60,13 @@ ajdict.loadAsync().then(
 		document.body.appendChild(desc);
 		document.body.appendChild(searchResults);
 		input.addEventListener("input", (event) => {
-			const maxResults = 500;
 			const query = input.value;
 			ajdict.search(query);
-			searchResults.innerHTML = ajdict.searchResultsToHTML(maxResults);
+			const maxHTMLSearchResults = 500;
+			searchResults.innerHTML = ajdict.searchResultsToHTML(maxHTMLSearchResults);
 			const nResults = ajdict.nSearchResults();
-			if (nResults > maxResults) {
-				desc.innerHTML = "全" + nResults + "件中1～" + maxResults + "件を表示中 - \"<b>" + escapeHTML(query) + "</b>\"";
+			if (nResults > maxHTMLSearchResults) {
+				desc.innerHTML = "全" + nResults + "件中1～" + maxHTMLSearchResults + "件を表示中 - \"<b>" + escapeHTML(query) + "</b>\"";
 			} else if (nResults === 0) {
 				if (query) {
 					desc.innerHTML = "何も見つかりませんでした - \"<b>" + escapeHTML(query) + "</b>\"";
