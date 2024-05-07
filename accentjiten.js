@@ -136,65 +136,67 @@ function AJDictionary() {
 		
 		data = uint8Array;
 		initialize();
-	};
+		initialized = true;
 	
-	function initialize() {
-		const entryArrayLength = getIntAt(0);
-		const syllableFormPoolOffset = 4 + (entryArrayLength * 3 * 4);
-		let pos = syllableFormPoolOffset;
-		
-		const nSyllableFormPool = getIntAt(pos);
-		pos += 4;
-		syllableFormPool = new Array(nSyllableFormPool);
-		for (let i = 0; i < nSyllableFormPool; i++) {
-			const nHiraganaMoras = getIntAt(pos);
+		function initialize() {
+			const entryArrayLength = getIntAt(0);
+			const syllableFormPoolOffset = 4 + (entryArrayLength * 3 * 4);
+			let pos = syllableFormPoolOffset;
+			
+			const nSyllableFormPool = getIntAt(pos);
 			pos += 4;
-			const hiraganaMoras = new Array(nHiraganaMoras);
-			for (let j = 0; j < nHiraganaMoras; j++) {
-				hiraganaMoras[j] = getStringAt(pos);
-				pos += 4 + (hiraganaMoras[j].length * 2);
+			syllableFormPool = new Array(nSyllableFormPool);
+			for (let i = 0; i < nSyllableFormPool; i++) {
+				const nHiraganaMoras = getIntAt(pos);
+				pos += 4;
+				const hiraganaMoras = new Array(nHiraganaMoras);
+				for (let j = 0; j < nHiraganaMoras; j++) {
+					hiraganaMoras[j] = getStringAt(pos);
+					pos += 4 + (hiraganaMoras[j].length * 2);
+				}
+				
+				const nKatakanaMoras = getIntAt(pos);
+				pos += 4;
+				const katakanaMoras = new Array(nKatakanaMoras);
+				for (let j = 0; j < nKatakanaMoras; j++) {
+					katakanaMoras[j] = getStringAt(pos);
+					pos += 4 + (katakanaMoras[j].length * 2);
+				}
+				
+				const nRomaji = getIntAt(pos);
+				pos += 4;
+				const romaji = new Array(nRomaji);
+				for (let j = 0; j < nRomaji; j++) {
+					romaji[j] = getStringAt(pos);
+					pos += 4 + (romaji[j].length * 2);
+				}
+				
+				const isNakaguro = hiraganaMoras[0] === "・" ? true : false;
+				
+				syllableFormPool[i] = { hiraganaMoras: hiraganaMoras, katakanaMoras: katakanaMoras, romaji: romaji,
+					hiraganaSyllable: hiraganaMoras.join(""), katakanaSyllable: katakanaMoras.join(""),
+					poolIndex: i, isNakaguro: isNakaguro };
 			}
 			
-			const nKatakanaMoras = getIntAt(pos);
+			const nSyllablePool = getIntAt(pos);
 			pos += 4;
-			const katakanaMoras = new Array(nKatakanaMoras);
-			for (let j = 0; j < nKatakanaMoras; j++) {
-				katakanaMoras[j] = getStringAt(pos);
-				pos += 4 + (katakanaMoras[j].length * 2);
+			syllablePool = new Array(nSyllablePool);
+			for (let i = 0; i < nSyllablePool; i++) {
+				const syllableFormPoolIndex = getIntAt(pos);
+				pos += 4;
+				const syllableForm = syllableFormPool[syllableFormPoolIndex];
+				const hiraganaOrKatakana = getIntAt(pos);
+				pos += 4;
+				const syllable = { form: syllableForm, hiraganaOrKatakana: hiraganaOrKatakana, poolIndex: i };
+				syllablePool[i] = syllable;
 			}
 			
-			const nRomaji = getIntAt(pos);
-			pos += 4;
-			const romaji = new Array(nRomaji);
-			for (let j = 0; j < nRomaji; j++) {
-				romaji[j] = getStringAt(pos);
-				pos += 4 + (romaji[j].length * 2);
-			}
-			
-			const isNakaguro = hiraganaMoras[0] === "・" ? true : false;
-			
-			syllableFormPool[i] = { hiraganaMoras: hiraganaMoras, katakanaMoras: katakanaMoras, romaji: romaji,
-				hiraganaSyllable: hiraganaMoras.join(""), katakanaSyllable: katakanaMoras.join(""),
-				poolIndex: i, isNakaguro: isNakaguro };
-		}
+			exactMatchedEntryOffsetsBuf = new ArrayBuffer(entryArray_getLength() * 4);
+			exactMatchedEntryOffsetsArr = new Uint32Array(exactMatchedEntryOffsetsBuf);
+			nonExactMatchedEntryOffsetsBuf = new ArrayBuffer(entryArray_getLength() * 4);
+			nonExactMatchedEntryOffsetsArr = new Uint32Array(nonExactMatchedEntryOffsetsBuf);
+		};
 		
-		const nSyllablePool = getIntAt(pos);
-		pos += 4;
-		syllablePool = new Array(nSyllablePool);
-		for (let i = 0; i < nSyllablePool; i++) {
-			const syllableFormPoolIndex = getIntAt(pos);
-			pos += 4;
-			const syllableForm = syllableFormPool[syllableFormPoolIndex];
-			const hiraganaOrKatakana = getIntAt(pos);
-			pos += 4;
-			const syllable = { form: syllableForm, hiraganaOrKatakana: hiraganaOrKatakana, poolIndex: i };
-			syllablePool[i] = syllable;
-		}
-		
-		exactMatchedEntryOffsetsBuf = new ArrayBuffer(entryArray_getLength() * 4);
-		exactMatchedEntryOffsetsArr = new Uint32Array(exactMatchedEntryOffsetsBuf);
-		nonExactMatchedEntryOffsetsBuf = new ArrayBuffer(entryArray_getLength() * 4);
-		nonExactMatchedEntryOffsetsArr = new Uint32Array(nonExactMatchedEntryOffsetsBuf);
 	};
 	
 	search = function(query) {
@@ -471,7 +473,9 @@ function AJDictionary() {
 		}
 		
 	}
-
+	
+	return this;
+	
 	function getIntAt(pos) {
 		const b1 = data[pos] & 0xFF;
 		const b2 = data[pos + 1] & 0xFF;
@@ -654,5 +658,4 @@ function AJDictionary() {
 		return array;
 	}
 	
-	return this;
 }
