@@ -195,7 +195,7 @@ function AJDictionary() {
 			exactMatchedEntryOffsetsArr = new Uint32Array(exactMatchedEntryOffsetsBuf);
 			nonExactMatchedEntryOffsetsBuf = new ArrayBuffer(entryArray_getLength() * 4);
 			nonExactMatchedEntryOffsetsArr = new Uint32Array(nonExactMatchedEntryOffsetsBuf);
-		};
+		}
 		
 	};
 	
@@ -472,7 +472,7 @@ function AJDictionary() {
 			return html;
 		}
 		
-	}
+	};
 	
 	return this;
 	
