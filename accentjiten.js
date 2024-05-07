@@ -1,3 +1,4 @@
+
 /*
 
 accentjiten - Japanese pitch accent dictionary
@@ -5,6 +6,10 @@ https://github.com/accentjiten
 Copyright (c) 2024 accentjiten
 
 */
+
+
+
+
 
 /*!
 
@@ -31,26 +36,6 @@ TODO:
 - dictionary LZMA compression + caching in localStorage
 */
 
-var dataPoolArr = null; //Uint8Array
-var syllablePool = null; //Array<Syllable>
-var syllableFormPool = null; //Array<SyllableForm>
-var dataPoolOffset = null; //Number
-var entryArrayOffset = null; //Number
-var exactMatchedEntryOffsetsBuf = null; //ArrayBuffer
-var exactMatchedEntryOffsetsArr = null; //Uint32Array
-var exactMatchedEntryOffsetsN = null; //Number
-var nonExactMatchedEntryOffsetsBuf = null; //ArrayBuffer
-var nonExactMatchedEntryOffsetsArr = null; //Uint32Array
-var nonExactMatchedEntryOffsetsN = null; //Number
-
-var utf16leTextDecoder = new TextDecoder("utf-16le");
-
-var NO_MATCH = 0;
-var EXACT_MATCH = 1;
-var NON_EXACT_MATCH = 2;
-
-var MAX_RESULTS = 500;
-
 const input = document.createElement("input");
 input.type = "text";
 input.style.fontSize = "20px";
@@ -64,8 +49,9 @@ desc.innerHTML = "日本語アクセント辞典<br>使い方：単語を入力�
 
 const searchResults = document.createElement("p");
 
-readAJ().then(
-	(value) => {
+const ajdict = AJDictionary();
+ajdict.loadAsync().then(
+	() => {
 		const title = document.createElement("p");
 		title.innerHTML = "accentjiten [alpha]";
 		document.body.removeChild(loadingMsg);
@@ -74,12 +60,13 @@ readAJ().then(
 		document.body.appendChild(desc);
 		document.body.appendChild(searchResults);
 		input.addEventListener("input", (event) => {
+			const maxResults = 500;
 			const query = input.value;
-			ajSearch(query);
-			searchResults.innerHTML = entriesToHTML();
-			const nResults = exactMatchedEntryOffsetsN + nonExactMatchedEntryOffsetsN;
-			if (nResults > MAX_RESULTS) {
-				desc.innerHTML = "全" + nResults + "件中1～" + MAX_RESULTS + "件を表示中 - \"<b>" + escapeHTML(query) + "</b>\"";
+			ajdict.search(query);
+			searchResults.innerHTML = ajdict.searchResultsToHTML(maxResults);
+			const nResults = ajdict.nSearchResults();
+			if (nResults > maxResults) {
+				desc.innerHTML = "全" + nResults + "件中1～" + maxResults + "件を表示中 - \"<b>" + escapeHTML(query) + "</b>\"";
 			} else if (nResults === 0) {
 				if (query) {
 					desc.innerHTML = "何も見つかりませんでした - \"<b>" + escapeHTML(query) + "</b>\"";
@@ -97,553 +84,575 @@ readAJ().then(
 		const elem = document.createElement("p");
 		elem.innerHTML = "Load failed";
 		document.body.appendChild(elem);
-	}
-);
-
-async function readAJ() {
-	const zippedArrayBuffer = await new Promise((resolve, reject) => {
-		const xhr = new XMLHttpRequest();
-		xhr.responseType = "arraybuffer";
-		xhr.addEventListener("loadend", (event) => {
-			if (xhr.status >= 200 && xhr.status <= 299) {
-				resolve(xhr.response);
-			} else {
-				reject(new Error());
-			}
-		});
-		xhr.open("GET", "accentjiten.dat.zip");
-		xhr.send();
 	});
-	const uint8Array = await new Promise((resolve, reject) => {
-		const zip = new JSZip();
-		zip.loadAsync(zippedArrayBuffer).then((files) => {
-			resolve(files.file("accentjiten.dat").async("uint8array"));
-		}, (error) => {
-			reject(error);
-		});
-	});
-	dataPoolArr = uint8Array;
-	ajInit();
-}
-
-function ajInit() {
-	let pos = 0;
-	
-	const nSyllableFormPool = getIntAt(pos);
-	pos += 4;
-	syllableFormPool = new Array(nSyllableFormPool);
-	for (let i = 0; i < nSyllableFormPool; i++) {
-		const nHiraganaMoras = getIntAt(pos);
-		pos += 4;
-		const hiraganaMoras = new Array(nHiraganaMoras);
-		for (let j = 0; j < nHiraganaMoras; j++) {
-			hiraganaMoras[j] = getStringAt(pos);
-			pos += 4 + (hiraganaMoras[j].length * 2);
-		}
-		
-		const nKatakanaMoras = getIntAt(pos);
-		pos += 4;
-		const katakanaMoras = new Array(nKatakanaMoras);
-		for (let j = 0; j < nKatakanaMoras; j++) {
-			katakanaMoras[j] = getStringAt(pos);
-			pos += 4 + (katakanaMoras[j].length * 2);
-		}
-		
-		const nRomaji = getIntAt(pos);
-		pos += 4;
-		const romaji = new Array(nRomaji);
-		for (let j = 0; j < nRomaji; j++) {
-			romaji[j] = getStringAt(pos);
-			pos += 4 + (romaji[j].length * 2);
-		}
-		
-		const isNakaguro = hiraganaMoras[0] === "・" ? true : false;
-		
-		syllableFormPool[i] = { hiraganaMoras: hiraganaMoras, katakanaMoras: katakanaMoras, romaji: romaji,
-			hiraganaSyllable: hiraganaMoras.join(""), katakanaSyllable: katakanaMoras.join(""),
-			poolIndex: i, isNakaguro: isNakaguro };
-	}
-	
-	const nSyllablePool = getIntAt(pos);
-	pos += 4;
-	syllablePool = new Array(nSyllablePool);
-	for (let i = 0; i < nSyllablePool; i++) {
-		const syllableFormPoolIndex = getIntAt(pos);
-		pos += 4;
-		const syllableForm = syllableFormPool[syllableFormPoolIndex];
-		const hiraganaOrKatakana = getIntAt(pos);
-		pos += 4;
-		const syllable = { form: syllableForm, hiraganaOrKatakana: hiraganaOrKatakana, poolIndex: i };
-		syllablePool[i] = syllable;
-	}
-	
-	entryArrayOffset = getIntAt(pos);
-	pos += 4;
-	
-	dataPoolOffset = pos + 4;
-	
-	exactMatchedEntryOffsetsBuf = new ArrayBuffer(entryArray_getLength() * 4);
-	exactMatchedEntryOffsetsArr = new Uint32Array(exactMatchedEntryOffsetsBuf);
-	nonExactMatchedEntryOffsetsBuf = new ArrayBuffer(entryArray_getLength() * 4);
-	nonExactMatchedEntryOffsetsArr = new Uint32Array(nonExactMatchedEntryOffsetsBuf);
-	
-}
-
-function ajSearch(query) {
-	
-	exactMatchedEntryOffsetsN = 0;
-	nonExactMatchedEntryOffsetsN = 0;
-	
-	if (query.length === 0 || query.length > 100) {
-		return;
-	}
-	
-	const syllableTrie = createSyllableTrie(query);
-	const entryArrayLength = entryArray_getLength();
-	for (let i = 0; i < entryArrayLength; i++) {
-		const entryOffset = entryArray_getEntry_entryOffset(i);
-		const match1 = matchWordVariants(entryOffset, query);
-		if (match1 === EXACT_MATCH) {
-			exactMatchedEntryOffsetsArr[exactMatchedEntryOffsetsN++] = entryOffset;
-		} else {
-			const match2 = matchSyllables(entryOffset, syllableTrie);
-			switch (match2) {
-				case NO_MATCH:
-					if (match1 === NON_EXACT_MATCH) {
-						nonExactMatchedEntryOffsetsArr[nonExactMatchedEntryOffsetsN++] = entryOffset;
-					}
-					break;
-				case NON_EXACT_MATCH:
-					nonExactMatchedEntryOffsetsArr[nonExactMatchedEntryOffsetsN++] = entryOffset;
-					break;
-				case EXACT_MATCH:
-					exactMatchedEntryOffsetsArr[exactMatchedEntryOffsetsN++] = entryOffset;
-					break;
-			}
-		}
-	}
-	
-	function matchWordVariants(entryOffset, query) {
-		const stringArrayOffset = entry_getWordVariants_stringArrayOffset(entryOffset);
-		const stringArrayLength = stringArray_getLength(stringArrayOffset);
-		let anyNonExactMatch = false;
-		for (let i = 0; i < stringArrayLength; i++) {
-			const stringOffset = stringArray_getString_stringOffset(stringArrayOffset, i);
-			const match = matchWordVariant(stringOffset, query);
-			switch (match) {
-				case NO_MATCH: break;
-				case EXACT_MATCH: return EXACT_MATCH;
-				case NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
-			}
-		}
-		return anyNonExactMatch ? NON_EXACT_MATCH : NO_MATCH;
-	}
-	
-	function matchWordVariant(stringOffset, query) {
-		const stringLength = string_getLength(stringOffset);
-		const queryLength = query.length;
-		for (let i = 0; i < queryLength; i++) {
-			if (i >= stringLength) return null;
-			const stringChar = string_getChar(stringOffset, i);
-			const queryChar = query.charCodeAt(i);
-			if (stringChar !== queryChar) return NO_MATCH;
-		}
-		return stringLength === queryLength ? EXACT_MATCH : NON_EXACT_MATCH;
-	}
-	
-	function createSyllableTrie(query) {
-		const formattedQuery = query.replace(/\s/g, "").toUpperCase();
-		
-		const nodes = new Array(formattedQuery.length);
-		for (let i = 0; i < formattedQuery.length; i++)
-			nodes[i] = { children: { }, isLeaf: false, isCompleteMatchLeaf: false };
-		
-		for (let i = 0; i < formattedQuery.length; i++) {
-			const node = nodes[i];
-			const nodeChildren = node.children;
-			for (let j = 0; j < syllableFormPool.length; j++) {
-				const syllableForm = syllableFormPool[j];
-				const childNodes = new Set();
-				for (const substring of syllableForm.romaji) {
-					const substringMatch = matchSubstring(formattedQuery, i, substring);
-					if (substringMatch) {
-						const childNode = i + substringMatch.nMatchedChars < nodes.length
-							? nodes[i + substringMatch.nMatchedChars]
-							: { children: { }, isLeaf: true, isCompleteMatchLeaf: substringMatch.isCompleteMatch };
-						childNodes.add(childNode);
-					}
-				}
-				{
-					const hiraganaSyllable = syllableForm.hiraganaSyllable;
-					const substringMatch = matchSubstring(formattedQuery, i, hiraganaSyllable);
-					if (substringMatch) {
-						const childNode = i + substringMatch.nMatchedChars < nodes.length
-							? nodes[i + substringMatch.nMatchedChars]
-							: { children: { }, isLeaf: true, isCompleteMatchLeaf: substringMatch.isCompleteMatch };
-						childNodes.add(childNode);
-					}
-				}
-				{
-					const katakanaSyllable = syllableForm.katakanaSyllable;
-					const substringMatch = matchSubstring(formattedQuery, i, katakanaSyllable);
-					if (substringMatch) {
-						const childNode = i + substringMatch.nMatchedChars < nodes.length
-							? nodes[i + substringMatch.nMatchedChars]
-							: { children: { }, isLeaf: true, isCompleteMatchLeaf: substringMatch.isCompleteMatch };
-						childNodes.add(childNode);
-					}
-				}
-				if (childNodes.size > 0) {
-					nodeChildren[j] = childNodes;
-				}
-			}
-		}
-		
-		return nodes;
-	}
-	
-	function matchSubstring(query, index, substring) {
-		for (let i = 0; i < substring.length; i++) {
-			if (index + i >= query.length) return { nMatchedChars: i, isCompleteMatch: false };
-			if (query.charAt(index + i) !== substring.charAt(i)) return null;
-		}
-		return { nMatchedChars: substring.length, isCompleteMatch: true };
-	}
-	
-	function matchSyllables(entryOffset, syllableTrie) {
-		const nodes = syllableTrie;
-		if (nodes.length === 0) return 0;
-		const syllableArrayArrayOffset = entry_getReadings_syllableArrayArrayOffset(entryOffset);
-		const syllableArrayArrayLength = syllableArrayArray_getLength(syllableArrayArrayOffset);
-		let anyNonExactMatch = false;
-		for (let i = 0; i < syllableArrayArrayLength; i++) {
-			const syllableArrayOffset =
-				syllableArrayArray_getSyllableArray_syllableArrayOffset(syllableArrayArrayOffset, i);
-			const syllableArrayLength = syllableArray_getLength(syllableArrayOffset);
-			const match = matchSyllablesRecursive(nodes[0], syllableArrayOffset, 0, syllableArrayLength);
-			switch (match) {
-				case NO_MATCH: break;
-				case EXACT_MATCH: return EXACT_MATCH;
-				case NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
-			}
-		}
-		return anyNonExactMatch ? NON_EXACT_MATCH : NO_MATCH;
-	}
-	
-	function matchSyllablesRecursive(node, syllableArrayOffset, syllableArrayIndex, syllableArrayLength) {
-		if (syllableArrayIndex >= syllableArrayLength) {
-			return NO_MATCH;
-		}
-		const syllablePoolIndex =
-			syllableArray_getSyllable_syllablePoolIndex(syllableArrayOffset, syllableArrayIndex);
-		const syllable = syllablePool[syllablePoolIndex];
-		const childNodes = node.children[syllable.form.poolIndex];
-		if (!childNodes) {
-			return NO_MATCH;
-		}
-		let anyNonExactMatch = false;
-		for (const childNode of childNodes) {
-			const match = !childNode.isLeaf
-				? matchSyllablesRecursive(
-					childNode, syllableArrayOffset, syllableArrayIndex + 1, syllableArrayLength)
-				: childNode.isCompleteMatchLeaf && syllableArrayIndex === syllableArrayLength - 1
-					? EXACT_MATCH
-					: NON_EXACT_MATCH;
-			switch (match) {
-				case NO_MATCH: break;
-				case EXACT_MATCH: return EXACT_MATCH;
-				case NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
-			}
-		}
-		return anyNonExactMatch ? NON_EXACT_MATCH : NO_MATCH;
-	}
-	
-}
-
-function entriesToHTML() {
-	let html = "";
-	let nEntries = 0;
-	
-	for (let i = 0; i < exactMatchedEntryOffsetsN; i++) {
-		if (nEntries > MAX_RESULTS) break;
-		const entryOffset = exactMatchedEntryOffsetsArr[i];
-		html += entryToHTML(entryOffset);
-		html += "<hr>";
-		nEntries++;
-	}
-	
-	for (let i = 0; i < nonExactMatchedEntryOffsetsN; i++) {
-		if (nEntries > MAX_RESULTS) break;
-		const entryOffset = nonExactMatchedEntryOffsetsArr[i];
-		html += entryToHTML(entryOffset);
-		html += "<hr>";
-		nEntries++;
-	}
-	
-	return html;
-	
-	function entryToHTML(entryOffset) {
-		let html = "";
-		const stringArrayOffset = entry_getWordVariants_stringArrayOffset(entryOffset);
-		const stringOffset = stringArray_getString_stringOffset(stringArrayOffset, 0);
-		const wordVariant = string_get(stringOffset);
-		html += "「";
-		html += wordVariant;
-		html += "」";
-		const pronunciationArrayOffset = entry_getPronunciations_pronunciationArrayOffset(entryOffset);
-		const pronunciationArrayLength = pronunciationArray_getLength(pronunciationArrayOffset);
-		for (let i = 0; i < pronunciationArrayLength; i++) {
-			const pronunciationOffset =
-				pronunciationArray_getPronunciation_pronunciationOffset(pronunciationArrayOffset, i);
-			const syllableArrayOffset = pronunciation_getReading_syllableArrayOffset(pronunciationOffset);
-			const accent = pronunciation_getAccent(pronunciationOffset);
-			const sourceArrayOffset = pronunciation_getSources_sourceArrayOffset(pronunciationOffset);
-			
-			const syllableArrayLength = syllableArray_getLength(syllableArrayOffset);
-			html += "<div class=\"tonetext\">";
-			let nMora = 0;
-			for (let j = 0; j < syllableArrayLength; j++) {
-				const syllablePoolIndex = syllableArray_getSyllable_syllablePoolIndex(syllableArrayOffset, j);
-				const syllable = syllablePool[syllablePoolIndex];
-				const syllableForm = syllable.form;
-				const isNakaguro = syllableForm.isNakaguro;
-				const moras = syllable.hiraganaOrKatakana === 0
-					? syllableForm.hiraganaMoras : syllableForm.katakanaMoras;
-				for (const mora of moras) {
-					if (accent === 0) {
-						if (nMora === 0) {
-							html += "<span class=\"lowtonenexthigh\">";
-						} else {
-							html += "<span class=\"hightone\">";
-						}
-					} else if (accent === 1) {
-						if (nMora === 0) {
-							html += "<span class=\"hightone\">";
-						} else if (nMora === 1) {
-							html += "<span class=\"lowtoneprevioushigh\">";
-						} else {
-							html += "<span class=\"lowtone\">";
-						}
-					} else {
-						if (nMora === 0) {
-							html += "<span class=\"lowtonenexthigh\">";
-						} else if (nMora === accent) {
-							html += "<span class=\"lowtoneprevioushigh\">";
-						} else if (nMora < accent) {
-							html += "<span class=\"hightone\">";
-						} else {
-							html += "<span class=\"lowtone\">";
-						}
-					}
-					html += mora;
-					html += "</span>";
-					if (!isNakaguro) {
-						nMora++;
-					}
-				}
-			}
-			if (nMora === accent) {
-				html += "<span class=\"lowtoneprevioushigh\"></span>";
-			}
-			html += "</div>";
-			
-			const sourceArrayLength = sourceArray_getLength(sourceArrayOffset);
-			html += "<span style=\"vertical-align:middle;\"><small style=\"color:#999999;\"><small>";
-			html += "&thinsp;×";
-			html += sourceArrayLength;
-			html += "</small></small></span>";
-			if (i !== pronunciationArrayLength - 1) {
-				html += "&emsp;";
-			}
-		}
-		return html;
-	}
-	
-}
-
-function getIntAt(pos) {
-	const b1 = dataPoolArr[pos] & 0xFF;
-	const b2 = dataPoolArr[pos + 1] & 0xFF;
-	const b3 = dataPoolArr[pos + 2] & 0xFF;
-	const b4 = dataPoolArr[pos + 3] & 0xFF;
-	return ((b1 << 24) + (b2 << 16) + (b3 << 8) + (b4));
-}
-
-function getCharAt(pos) {
-	const b1 = dataPoolArr[pos] & 0xFF;
-	const b2 = dataPoolArr[pos + 1] & 0xFF;
-	return ((b1 << 8) + (b2));
-}
-
-function getStringAt(pos) {
-	const len = getIntAt(pos);
-	const buf = new ArrayBuffer(len * 2);
-	const arr = new Uint16Array(buf);
-	for (let i = 0; i < len; i++)
-		arr[i] = getCharAt((pos + 4) + (i * 2));
-	return utf16leTextDecoder.decode(buf);
-}
-
-function entryArray_getLength() {
-	return getIntAt(dataPoolOffset + entryArrayOffset);
-}
-
-function entryArray_getEntry_entryOffset(index) {
-	return dataPoolOffset + entryArrayOffset + 4 + (12 * index);
-}
-
-function entry_getWordVariants_stringArrayOffset(entryOffset) {
-	return getIntAt(entryOffset) + dataPoolOffset;
-}
-
-function entry_getReadings_syllableArrayArrayOffset(entryOffset) {
-	return getIntAt(entryOffset + 4) + dataPoolOffset;
-}
-
-function entry_getPronunciations_pronunciationArrayOffset(entryOffset) {
-	return getIntAt(entryOffset + 8) + dataPoolOffset;
-}
-
-function stringArray_getLength(stringArrayOffset) {
-	return getIntAt(stringArrayOffset);
-}
-
-function stringArray_getString_stringOffset(stringArrayOffset, index) {
-	return getIntAt((stringArrayOffset + 4) + (index * 4)) + dataPoolOffset;
-}
-
-function string_get(stringOffset) {
-	return getStringAt(stringOffset);
-}
-
-function string_getLength(stringOffset) {
-	return getIntAt(stringOffset);
-}
-
-function string_getChar(stringOffset, index) {
-	return getCharAt((stringOffset + 4) + (index * 2));
-}
-
-function syllableArrayArray_getLength(syllableArrayArrayOffset) {
-	return getIntAt(syllableArrayArrayOffset);
-}
-
-function syllableArrayArray_getSyllableArray_syllableArrayOffset(syllableArrayArrayOffset, index) {
-	return getIntAt((syllableArrayArrayOffset + 4) + (index * 4)) + dataPoolOffset;
-}
-
-function syllableArray_getLength(syllableArrayOffset) {
-	return getIntAt(syllableArrayOffset);
-}
-
-function syllableArray_getSyllable_syllablePoolIndex(syllableArrayOffset, index) {
-	return getIntAt((syllableArrayOffset + 4) + (index * 4));
-}
-
-function pronunciationArray_getLength(pronunciationArrayOffset) {
-	return getIntAt(pronunciationArrayOffset);
-}
-
-function pronunciationArray_getPronunciation_pronunciationOffset(pronunciationArrayOffset, index) {
-	return getIntAt((pronunciationArrayOffset + 4) + (index * 4)) + dataPoolOffset;
-}
-
-function pronunciation_getReading_syllableArrayOffset(pronunciationOffset) {
-	return getIntAt(pronunciationOffset) + dataPoolOffset;
-}
-
-function pronunciation_getAccent(pronunciationOffset) {
-	return getIntAt(pronunciationOffset + 4);
-}
-
-function pronunciation_getSources_sourceArrayOffset(pronunciationOffset) {
-       return getIntAt(pronunciationOffset + 8) + dataPoolOffset;
-   }
-
-function sourceArray_getLength(sourceArrayOffset) {
-	return getIntAt(sourceArrayOffset);
-}
-
-function sourceArray_getSource(sourceArrayOffset, index) {
-	return getIntAt((sourceArrayOffset + 4) + (index * 4));
-}
-
-function entry_toObject(entryOffset) {
-	const stringArrayOffset = entry_getWordVariants_stringArrayOffset(entryOffset);
-	const wordVariants = stringArray_toObject(stringArrayOffset);
-	const syllableArrayArrayOffset = entry_getReadings_syllableArrayArrayOffset(entryOffset);
-	const readings = syllableArrayArray_toObject(syllableArrayArrayOffset);
-	const pronunciationArrayOffset = entry_getPronunciations_pronunciationArrayOffset(entryOffset);
-	const pronunciations = pronunciationArray_toObject(pronunciationArrayOffset);
-	return { wordVariants: wordVariants, readings: readings, pronunciations: pronunciations };
-}
-
-function stringArray_toObject(stringArrayOffset) {
-	const stringArrayLength = stringArray_getLength(stringArrayOffset);
-	const array = new Array(stringArrayLength);
-	for (let i = 0; i < stringArrayLength; i++) {
-		const stringOffset = stringArray_getString_stringOffset(stringArrayOffset, i);
-		const string = string_get(stringOffset);
-		array[i] = string;
-	}
-	return array;
-}
-
-function syllableArrayArray_toObject(syllableArrayArrayOffset) {
-	const syllableArrayArrayLength = syllableArrayArray_getLength(syllableArrayArrayOffset);
-	const array = new Array(syllableArrayArrayLength);
-	for (let i = 0; i < syllableArrayArrayLength; i++) {
-		const syllableArrayOffset =
-			syllableArrayArray_getSyllableArray_syllableArrayOffset(syllableArrayArrayOffset, i);
-		const syllableArray = syllableArray_toObject(syllableArrayOffset);
-		array[i] = syllableArray;
-	}
-	return array;
-}
-
-function syllableArray_toObject(syllableArrayOffset) {
-	const syllableArrayLength = syllableArray_getLength(syllableArrayOffset);
-	const array = new Array(syllableArrayLength);
-	for (let i = 0; i < syllableArrayLength; i++) {
-		const syllablePoolIndex = syllableArray_getSyllable_syllablePoolIndex(syllableArrayOffset, i);
-		const syllable = syllablePool[syllablePoolIndex];
-		array[i] = syllable;
-	}
-	return array;
-}
-
-function pronunciationArray_toObject(pronunciationArrayOffset) {
-	const pronunciationArrayLength = pronunciationArray_getLength(pronunciationArrayOffset);
-	const array = new Array(pronunciationArrayLength);
-	for (let i = 0; i < pronunciationArrayLength; i++) {
-		const pronunciationOffset =
-			pronunciationArray_getPronunciation_pronunciationOffset(pronunciationArrayOffset, i);
-		const pronunciation = pronunciation_toObject(pronunciationOffset);
-		array[i] = pronunciation;
-	}
-	return array;
-}
-
-function pronunciation_toObject(pronunciationOffset) {
-	const syllableArrayOffset = pronunciation_getReading_syllableArrayOffset(pronunciationOffset);
-	const syllableArray = syllableArray_toObject(syllableArrayOffset);
-	const accent = pronunciation_getAccent(pronunciationOffset);
-	const sourceArrayOffset = pronunciation_getSources_sourceArrayOffset(pronunciationOffset);
-	const sourceArray = sourceArray_toObject(sourceArrayOffset);
-	return { reading: syllableArray, accent: accent, sources: sourceArray };
-}
-
-function sourceArray_toObject(sourceArrayOffset) {
-	const sourceArrayLength = sourceArray_getLength(sourceArrayOffset);
-	const array = new Array(sourceArrayLength);
-	for (let i = 0; i < sourceArrayLength; i++) {
-		const source = sourceArray_getSource(sourceArrayOffset, i);
-		array[i] = source;
-	}
-	return array;
-}
 
 function escapeHTML(str) {
 	return str.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
 		.replaceAll('"', "&quot;").replaceAll("'", "&#039;").replaceAll(" ", "&nbsp;");
+}
+
+function AJDictionary() {
+	
+	let initialized = false;
+	let data = null; //Uint8Array
+	let syllablePool = null; //Array<Syllable>
+	let syllableFormPool = null; //Array<SyllableForm>
+	let exactMatchedEntryOffsetsBuf = null; //ArrayBuffer
+	let exactMatchedEntryOffsetsArr = null; //Uint32Array
+	let exactMatchedEntryOffsetsN = null; //Number
+	let nonExactMatchedEntryOffsetsBuf = null; //ArrayBuffer
+	let nonExactMatchedEntryOffsetsArr = null; //Uint32Array
+	let nonExactMatchedEntryOffsetsN = null; //Number
+	const utf16leTextDecoder = new TextDecoder("utf-16le");
+	const NO_MATCH = 0;
+	const EXACT_MATCH = 1;
+	const NON_EXACT_MATCH = 2;
+	
+	loadAsync = async function() {
+		if (initialized) return;
+		
+		const zippedArrayBuffer = await new Promise((resolve, reject) => {
+			const xhr = new XMLHttpRequest();
+			xhr.responseType = "arraybuffer";
+			xhr.addEventListener("loadend", (event) => {
+				if (xhr.status >= 200 && xhr.status <= 299) {
+					resolve(xhr.response);
+				} else {
+					reject(new Error());
+				}
+			});
+			xhr.open("GET", "accentjiten.dat.zip");
+			xhr.send();
+		});
+		
+		const uint8Array = await new Promise((resolve, reject) => {
+			const zip = new JSZip();
+			zip.loadAsync(zippedArrayBuffer).then((files) => {
+				resolve(files.file("accentjiten.dat").async("uint8array"));
+			}, (error) => {
+				reject(error);
+			});
+		});
+		
+		data = uint8Array;
+		initialize();
+	};
+	
+	function initialize() {
+		const entryArrayLength = getIntAt(0);
+		const syllableFormPoolOffset = 4 + (entryArrayLength * 3 * 4);
+		let pos = syllableFormPoolOffset;
+		
+		const nSyllableFormPool = getIntAt(pos);
+		pos += 4;
+		syllableFormPool = new Array(nSyllableFormPool);
+		for (let i = 0; i < nSyllableFormPool; i++) {
+			const nHiraganaMoras = getIntAt(pos);
+			pos += 4;
+			const hiraganaMoras = new Array(nHiraganaMoras);
+			for (let j = 0; j < nHiraganaMoras; j++) {
+				hiraganaMoras[j] = getStringAt(pos);
+				pos += 4 + (hiraganaMoras[j].length * 2);
+			}
+			
+			const nKatakanaMoras = getIntAt(pos);
+			pos += 4;
+			const katakanaMoras = new Array(nKatakanaMoras);
+			for (let j = 0; j < nKatakanaMoras; j++) {
+				katakanaMoras[j] = getStringAt(pos);
+				pos += 4 + (katakanaMoras[j].length * 2);
+			}
+			
+			const nRomaji = getIntAt(pos);
+			pos += 4;
+			const romaji = new Array(nRomaji);
+			for (let j = 0; j < nRomaji; j++) {
+				romaji[j] = getStringAt(pos);
+				pos += 4 + (romaji[j].length * 2);
+			}
+			
+			const isNakaguro = hiraganaMoras[0] === "・" ? true : false;
+			
+			syllableFormPool[i] = { hiraganaMoras: hiraganaMoras, katakanaMoras: katakanaMoras, romaji: romaji,
+				hiraganaSyllable: hiraganaMoras.join(""), katakanaSyllable: katakanaMoras.join(""),
+				poolIndex: i, isNakaguro: isNakaguro };
+		}
+		
+		const nSyllablePool = getIntAt(pos);
+		pos += 4;
+		syllablePool = new Array(nSyllablePool);
+		for (let i = 0; i < nSyllablePool; i++) {
+			const syllableFormPoolIndex = getIntAt(pos);
+			pos += 4;
+			const syllableForm = syllableFormPool[syllableFormPoolIndex];
+			const hiraganaOrKatakana = getIntAt(pos);
+			pos += 4;
+			const syllable = { form: syllableForm, hiraganaOrKatakana: hiraganaOrKatakana, poolIndex: i };
+			syllablePool[i] = syllable;
+		}
+		
+		exactMatchedEntryOffsetsBuf = new ArrayBuffer(entryArray_getLength() * 4);
+		exactMatchedEntryOffsetsArr = new Uint32Array(exactMatchedEntryOffsetsBuf);
+		nonExactMatchedEntryOffsetsBuf = new ArrayBuffer(entryArray_getLength() * 4);
+		nonExactMatchedEntryOffsetsArr = new Uint32Array(nonExactMatchedEntryOffsetsBuf);
+	};
+	
+	search = function(query) {
+		exactMatchedEntryOffsetsN = 0;
+		nonExactMatchedEntryOffsetsN = 0;
+		
+		if (query.length === 0 || query.length > 100) {
+			return;
+		}
+		
+		const syllableTrie = createSyllableTrie(query);
+		const entryArrayLength = entryArray_getLength();
+		for (let i = 0; i < entryArrayLength; i++) {
+			const entryOffset = entryArray_getEntry_entryOffset(i);
+			const match1 = matchWordVariants(entryOffset, query);
+			if (match1 === EXACT_MATCH) {
+				exactMatchedEntryOffsetsArr[exactMatchedEntryOffsetsN++] = entryOffset;
+			} else {
+				const match2 = matchSyllables(entryOffset, syllableTrie);
+				switch (match2) {
+					case NO_MATCH:
+						if (match1 === NON_EXACT_MATCH) {
+							nonExactMatchedEntryOffsetsArr[nonExactMatchedEntryOffsetsN++] = entryOffset;
+						}
+						break;
+					case NON_EXACT_MATCH:
+						nonExactMatchedEntryOffsetsArr[nonExactMatchedEntryOffsetsN++] = entryOffset;
+						break;
+					case EXACT_MATCH:
+						exactMatchedEntryOffsetsArr[exactMatchedEntryOffsetsN++] = entryOffset;
+						break;
+				}
+			}
+		}
+		
+		function matchWordVariants(entryOffset, query) {
+			const stringArrayOffset = entry_getWordVariants_stringArrayOffset(entryOffset);
+			const stringArrayLength = stringArray_getLength(stringArrayOffset);
+			let anyNonExactMatch = false;
+			for (let i = 0; i < stringArrayLength; i++) {
+				const stringOffset = stringArray_getString_stringOffset(stringArrayOffset, i);
+				const match = matchWordVariant(stringOffset, query);
+				switch (match) {
+					case NO_MATCH: break;
+					case EXACT_MATCH: return EXACT_MATCH;
+					case NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
+				}
+			}
+			return anyNonExactMatch ? NON_EXACT_MATCH : NO_MATCH;
+		}
+		
+		function matchWordVariant(stringOffset, query) {
+			const stringLength = string_getLength(stringOffset);
+			const queryLength = query.length;
+			for (let i = 0; i < queryLength; i++) {
+				if (i >= stringLength) return null;
+				const stringChar = string_getChar(stringOffset, i);
+				const queryChar = query.charCodeAt(i);
+				if (stringChar !== queryChar) return NO_MATCH;
+			}
+			return stringLength === queryLength ? EXACT_MATCH : NON_EXACT_MATCH;
+		}
+		
+		function createSyllableTrie(query) {
+			const formattedQuery = query.replace(/\s/g, "").toUpperCase();
+			
+			const nodes = new Array(formattedQuery.length);
+			for (let i = 0; i < formattedQuery.length; i++)
+				nodes[i] = { children: { }, isLeaf: false, isCompleteMatchLeaf: false };
+			
+			for (let i = 0; i < formattedQuery.length; i++) {
+				const node = nodes[i];
+				const nodeChildren = node.children;
+				for (let j = 0; j < syllableFormPool.length; j++) {
+					const syllableForm = syllableFormPool[j];
+					const childNodes = new Set();
+					for (const substring of syllableForm.romaji) {
+						const substringMatch = matchSubstring(formattedQuery, i, substring);
+						if (substringMatch) {
+							const childNode = i + substringMatch.nMatchedChars < nodes.length
+								? nodes[i + substringMatch.nMatchedChars]
+								: { children: { }, isLeaf: true, isCompleteMatchLeaf: substringMatch.isCompleteMatch };
+							childNodes.add(childNode);
+						}
+					}
+					{
+						const hiraganaSyllable = syllableForm.hiraganaSyllable;
+						const substringMatch = matchSubstring(formattedQuery, i, hiraganaSyllable);
+						if (substringMatch) {
+							const childNode = i + substringMatch.nMatchedChars < nodes.length
+								? nodes[i + substringMatch.nMatchedChars]
+								: { children: { }, isLeaf: true, isCompleteMatchLeaf: substringMatch.isCompleteMatch };
+							childNodes.add(childNode);
+						}
+					}
+					{
+						const katakanaSyllable = syllableForm.katakanaSyllable;
+						const substringMatch = matchSubstring(formattedQuery, i, katakanaSyllable);
+						if (substringMatch) {
+							const childNode = i + substringMatch.nMatchedChars < nodes.length
+								? nodes[i + substringMatch.nMatchedChars]
+								: { children: { }, isLeaf: true, isCompleteMatchLeaf: substringMatch.isCompleteMatch };
+							childNodes.add(childNode);
+						}
+					}
+					if (childNodes.size > 0) {
+						nodeChildren[j] = childNodes;
+					}
+				}
+			}
+			
+			return nodes;
+		}
+		
+		function matchSubstring(query, index, substring) {
+			for (let i = 0; i < substring.length; i++) {
+				if (index + i >= query.length) return { nMatchedChars: i, isCompleteMatch: false };
+				if (query.charAt(index + i) !== substring.charAt(i)) return null;
+			}
+			return { nMatchedChars: substring.length, isCompleteMatch: true };
+		}
+		
+		function matchSyllables(entryOffset, syllableTrie) {
+			const nodes = syllableTrie;
+			if (nodes.length === 0) return 0;
+			const syllableArrayArrayOffset = entry_getReadings_syllableArrayArrayOffset(entryOffset);
+			const syllableArrayArrayLength = syllableArrayArray_getLength(syllableArrayArrayOffset);
+			let anyNonExactMatch = false;
+			for (let i = 0; i < syllableArrayArrayLength; i++) {
+				const syllableArrayOffset =
+					syllableArrayArray_getSyllableArray_syllableArrayOffset(syllableArrayArrayOffset, i);
+				const syllableArrayLength = syllableArray_getLength(syllableArrayOffset);
+				const match = matchSyllablesRecursive(nodes[0], syllableArrayOffset, 0, syllableArrayLength);
+				switch (match) {
+					case NO_MATCH: break;
+					case EXACT_MATCH: return EXACT_MATCH;
+					case NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
+				}
+			}
+			return anyNonExactMatch ? NON_EXACT_MATCH : NO_MATCH;
+		}
+		
+		function matchSyllablesRecursive(node, syllableArrayOffset, syllableArrayIndex, syllableArrayLength) {
+			if (syllableArrayIndex >= syllableArrayLength) {
+				return NO_MATCH;
+			}
+			const syllablePoolIndex =
+				syllableArray_getSyllable_syllablePoolIndex(syllableArrayOffset, syllableArrayIndex);
+			const syllable = syllablePool[syllablePoolIndex];
+			const childNodes = node.children[syllable.form.poolIndex];
+			if (!childNodes) {
+				return NO_MATCH;
+			}
+			let anyNonExactMatch = false;
+			for (const childNode of childNodes) {
+				const match = !childNode.isLeaf
+					? matchSyllablesRecursive(
+						childNode, syllableArrayOffset, syllableArrayIndex + 1, syllableArrayLength)
+					: childNode.isCompleteMatchLeaf && syllableArrayIndex === syllableArrayLength - 1
+						? EXACT_MATCH
+						: NON_EXACT_MATCH;
+				switch (match) {
+					case NO_MATCH: break;
+					case EXACT_MATCH: return EXACT_MATCH;
+					case NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
+				}
+			}
+			return anyNonExactMatch ? NON_EXACT_MATCH : NO_MATCH;
+		}
+		
+	};
+	
+	nSearchResults = function() {
+		return exactMatchedEntryOffsetsN + nonExactMatchedEntryOffsetsN;
+	};
+	
+	searchResultsToHTML = function(maxResults) {
+		let html = "";
+		let nEntries = 0;
+		
+		for (let i = 0; i < exactMatchedEntryOffsetsN; i++) {
+			if (nEntries > maxResults) break;
+			const entryOffset = exactMatchedEntryOffsetsArr[i];
+			html += entryToHTML(entryOffset);
+			html += "<hr>";
+			nEntries++;
+		}
+		
+		for (let i = 0; i < nonExactMatchedEntryOffsetsN; i++) {
+			if (nEntries > maxResults) break;
+			const entryOffset = nonExactMatchedEntryOffsetsArr[i];
+			html += entryToHTML(entryOffset);
+			html += "<hr>";
+			nEntries++;
+		}
+		
+		return html;
+		
+		function entryToHTML(entryOffset) {
+			let html = "";
+			const stringArrayOffset = entry_getWordVariants_stringArrayOffset(entryOffset);
+			const stringOffset = stringArray_getString_stringOffset(stringArrayOffset, 0);
+			const wordVariant = string_get(stringOffset);
+			html += "「";
+			html += wordVariant;
+			html += "」";
+			const pronunciationArrayOffset = entry_getPronunciations_pronunciationArrayOffset(entryOffset);
+			const pronunciationArrayLength = pronunciationArray_getLength(pronunciationArrayOffset);
+			for (let i = 0; i < pronunciationArrayLength; i++) {
+				const pronunciationOffset =
+					pronunciationArray_getPronunciation_pronunciationOffset(pronunciationArrayOffset, i);
+				const syllableArrayOffset = pronunciation_getReading_syllableArrayOffset(pronunciationOffset);
+				const accent = pronunciation_getAccent(pronunciationOffset);
+				const sourceArrayOffset = pronunciation_getSources_sourceArrayOffset(pronunciationOffset);
+				
+				const syllableArrayLength = syllableArray_getLength(syllableArrayOffset);
+				html += "<div class=\"tonetext\">";
+				let nMora = 0;
+				for (let j = 0; j < syllableArrayLength; j++) {
+					const syllablePoolIndex = syllableArray_getSyllable_syllablePoolIndex(syllableArrayOffset, j);
+					const syllable = syllablePool[syllablePoolIndex];
+					const syllableForm = syllable.form;
+					const isNakaguro = syllableForm.isNakaguro;
+					const moras = syllable.hiraganaOrKatakana === 0
+						? syllableForm.hiraganaMoras : syllableForm.katakanaMoras;
+					for (const mora of moras) {
+						if (accent === 0) {
+							if (nMora === 0) {
+								html += "<span class=\"lowtonenexthigh\">";
+							} else {
+								html += "<span class=\"hightone\">";
+							}
+						} else if (accent === 1) {
+							if (nMora === 0) {
+								html += "<span class=\"hightone\">";
+							} else if (nMora === 1) {
+								html += "<span class=\"lowtoneprevioushigh\">";
+							} else {
+								html += "<span class=\"lowtone\">";
+							}
+						} else {
+							if (nMora === 0) {
+								html += "<span class=\"lowtonenexthigh\">";
+							} else if (nMora === accent) {
+								html += "<span class=\"lowtoneprevioushigh\">";
+							} else if (nMora < accent) {
+								html += "<span class=\"hightone\">";
+							} else {
+								html += "<span class=\"lowtone\">";
+							}
+						}
+						html += mora;
+						html += "</span>";
+						if (!isNakaguro) {
+							nMora++;
+						}
+					}
+				}
+				if (nMora === accent) {
+					html += "<span class=\"lowtoneprevioushigh\"></span>";
+				}
+				html += "</div>";
+				
+				const sourceArrayLength = sourceArray_getLength(sourceArrayOffset);
+				html += "<span style=\"vertical-align:middle;\"><small style=\"color:#999999;\"><small>";
+				html += "&thinsp;×";
+				html += sourceArrayLength;
+				html += "</small></small></span>";
+				if (i !== pronunciationArrayLength - 1) {
+					html += "&emsp;";
+				}
+			}
+			return html;
+		}
+		
+	}
+
+	function getIntAt(pos) {
+		const b1 = data[pos] & 0xFF;
+		const b2 = data[pos + 1] & 0xFF;
+		const b3 = data[pos + 2] & 0xFF;
+		const b4 = data[pos + 3] & 0xFF;
+		return ((b1 << 24) + (b2 << 16) + (b3 << 8) + (b4));
+	}
+	
+	function getCharAt(pos) {
+		const b1 = data[pos] & 0xFF;
+		const b2 = data[pos + 1] & 0xFF;
+		return ((b1 << 8) + (b2));
+	}
+	
+	function getStringAt(pos) {
+		const len = getIntAt(pos);
+		const buf = new ArrayBuffer(len * 2);
+		const arr = new Uint16Array(buf);
+		for (let i = 0; i < len; i++)
+			arr[i] = getCharAt((pos + 4) + (i * 2));
+		return utf16leTextDecoder.decode(buf);
+	}
+	
+	function entryArray_getLength() {
+		return getIntAt(0);
+	}
+	
+	function entryArray_getEntry_entryOffset(index) {
+		return 4 + (12 * index);
+	}
+	
+	function entry_getWordVariants_stringArrayOffset(entryOffset) {
+		return getIntAt(entryOffset);
+	}
+	
+	function entry_getReadings_syllableArrayArrayOffset(entryOffset) {
+		return getIntAt(entryOffset + 4);
+	}
+	
+	function entry_getPronunciations_pronunciationArrayOffset(entryOffset) {
+		return getIntAt(entryOffset + 8);
+	}
+	
+	function stringArray_getLength(stringArrayOffset) {
+		return getIntAt(stringArrayOffset);
+	}
+	
+	function stringArray_getString_stringOffset(stringArrayOffset, index) {
+		return getIntAt((stringArrayOffset + 4) + (index * 4));
+	}
+	
+	function string_get(stringOffset) {
+		return getStringAt(stringOffset);
+	}
+	
+	function string_getLength(stringOffset) {
+		return getIntAt(stringOffset);
+	}
+	
+	function string_getChar(stringOffset, index) {
+		return getCharAt((stringOffset + 4) + (index * 2));
+	}
+	
+	function syllableArrayArray_getLength(syllableArrayArrayOffset) {
+		return getIntAt(syllableArrayArrayOffset);
+	}
+	
+	function syllableArrayArray_getSyllableArray_syllableArrayOffset(syllableArrayArrayOffset, index) {
+		return getIntAt((syllableArrayArrayOffset + 4) + (index * 4));
+	}
+	
+	function syllableArray_getLength(syllableArrayOffset) {
+		return getIntAt(syllableArrayOffset);
+	}
+	
+	function syllableArray_getSyllable_syllablePoolIndex(syllableArrayOffset, index) {
+		return getIntAt((syllableArrayOffset + 4) + (index * 4));
+	}
+	
+	function pronunciationArray_getLength(pronunciationArrayOffset) {
+		return getIntAt(pronunciationArrayOffset);
+	}
+	
+	function pronunciationArray_getPronunciation_pronunciationOffset(pronunciationArrayOffset, index) {
+		return getIntAt((pronunciationArrayOffset + 4) + (index * 4));
+	}
+	
+	function pronunciation_getReading_syllableArrayOffset(pronunciationOffset) {
+		return getIntAt(pronunciationOffset);
+	}
+	
+	function pronunciation_getAccent(pronunciationOffset) {
+		return getIntAt(pronunciationOffset + 4);
+	}
+	
+	function pronunciation_getSources_sourceArrayOffset(pronunciationOffset) {
+		return getIntAt(pronunciationOffset + 8);
+	}
+	
+	function sourceArray_getLength(sourceArrayOffset) {
+		return getIntAt(sourceArrayOffset);
+	}
+	
+	function sourceArray_getSource(sourceArrayOffset, index) {
+		return getIntAt((sourceArrayOffset + 4) + (index * 4));
+	}
+	
+	function entry_toObject(entryOffset) {
+		const stringArrayOffset = entry_getWordVariants_stringArrayOffset(entryOffset);
+		const wordVariants = stringArray_toObject(stringArrayOffset);
+		const syllableArrayArrayOffset = entry_getReadings_syllableArrayArrayOffset(entryOffset);
+		const readings = syllableArrayArray_toObject(syllableArrayArrayOffset);
+		const pronunciationArrayOffset = entry_getPronunciations_pronunciationArrayOffset(entryOffset);
+		const pronunciations = pronunciationArray_toObject(pronunciationArrayOffset);
+		return { wordVariants: wordVariants, readings: readings, pronunciations: pronunciations };
+	}
+	
+	function stringArray_toObject(stringArrayOffset) {
+		const stringArrayLength = stringArray_getLength(stringArrayOffset);
+		const array = new Array(stringArrayLength);
+		for (let i = 0; i < stringArrayLength; i++) {
+			const stringOffset = stringArray_getString_stringOffset(stringArrayOffset, i);
+			const string = string_get(stringOffset);
+			array[i] = string;
+		}
+		return array;
+	}
+	
+	function syllableArrayArray_toObject(syllableArrayArrayOffset) {
+		const syllableArrayArrayLength = syllableArrayArray_getLength(syllableArrayArrayOffset);
+		const array = new Array(syllableArrayArrayLength);
+		for (let i = 0; i < syllableArrayArrayLength; i++) {
+			const syllableArrayOffset =
+				syllableArrayArray_getSyllableArray_syllableArrayOffset(syllableArrayArrayOffset, i);
+			const syllableArray = syllableArray_toObject(syllableArrayOffset);
+			array[i] = syllableArray;
+		}
+		return array;
+	}
+	
+	function syllableArray_toObject(syllableArrayOffset) {
+		const syllableArrayLength = syllableArray_getLength(syllableArrayOffset);
+		const array = new Array(syllableArrayLength);
+		for (let i = 0; i < syllableArrayLength; i++) {
+			const syllablePoolIndex = syllableArray_getSyllable_syllablePoolIndex(syllableArrayOffset, i);
+			const syllable = syllablePool[syllablePoolIndex];
+			array[i] = syllable;
+		}
+		return array;
+	}
+	
+	function pronunciationArray_toObject(pronunciationArrayOffset) {
+		const pronunciationArrayLength = pronunciationArray_getLength(pronunciationArrayOffset);
+		const array = new Array(pronunciationArrayLength);
+		for (let i = 0; i < pronunciationArrayLength; i++) {
+			const pronunciationOffset =
+				pronunciationArray_getPronunciation_pronunciationOffset(pronunciationArrayOffset, i);
+			const pronunciation = pronunciation_toObject(pronunciationOffset);
+			array[i] = pronunciation;
+		}
+		return array;
+	}
+	
+	function pronunciation_toObject(pronunciationOffset) {
+		const syllableArrayOffset = pronunciation_getReading_syllableArrayOffset(pronunciationOffset);
+		const syllableArray = syllableArray_toObject(syllableArrayOffset);
+		const accent = pronunciation_getAccent(pronunciationOffset);
+		const sourceArrayOffset = pronunciation_getSources_sourceArrayOffset(pronunciationOffset);
+		const sourceArray = sourceArray_toObject(sourceArrayOffset);
+		return { reading: syllableArray, accent: accent, sources: sourceArray };
+	}
+	
+	function sourceArray_toObject(sourceArrayOffset) {
+		const sourceArrayLength = sourceArray_getLength(sourceArrayOffset);
+		const array = new Array(sourceArrayLength);
+		for (let i = 0; i < sourceArrayLength; i++) {
+			const source = sourceArray_getSource(sourceArrayOffset, i);
+			array[i] = source;
+		}
+		return array;
+	}
+	
+	return this;
 }
