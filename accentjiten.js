@@ -148,11 +148,11 @@ function AJDictionary() {
 		
 		const dataUint8Array = new Uint8Array(uncompressedSize);
 		
-		let offset1 = 4;
-		const inStream = { readByte: () => lzmaUint8Array[offset1++] };
+		let inOffset = 4;
+		const inStream = { readByte: () => lzmaUint8Array[inOffset++] };
 		
-		let offset2 = 0;
-		const outStream = { writeByte: (byte) => { dataUint8Array[offset2++] = byte; } };
+		let outOffset = 0;
+		const outStream = { writeByte: (byte) => { dataUint8Array[outOffset++] = byte; } };
 		
 		LZMA.decompressFile(inStream, outStream);
 		
