@@ -49,7 +49,7 @@ desc.innerHTML = "日本語アクセント辞典<br>使い方：単語を入力�
 
 const searchResults = document.createElement("p");
 
-const ajdict = AJDictionary();
+const ajdict = new AJDictionary();
 ajdict.loadAsync().then(
 	() => {
 		const title = document.createElement("p");
@@ -108,7 +108,7 @@ function AJDictionary() {
 	const EXACT_MATCH = 1;
 	const NON_EXACT_MATCH = 2;
 	
-	loadAsync = async function() {
+	this.loadAsync = async function() {
 		if (initialized) return;
 		
 		const zippedArrayBuffer = await new Promise((resolve, reject) => {
@@ -199,7 +199,7 @@ function AJDictionary() {
 		
 	};
 	
-	search = function(query) {
+	this.search = function(query) {
 		exactMatchedEntryOffsetsN = 0;
 		nonExactMatchedEntryOffsetsN = 0;
 		
@@ -369,11 +369,11 @@ function AJDictionary() {
 		
 	};
 	
-	nSearchResults = function() {
+	this.nSearchResults = function() {
 		return exactMatchedEntryOffsetsN + nonExactMatchedEntryOffsetsN;
 	};
 	
-	searchResultsToHTML = function(maxResults) {
+	this.searchResultsToHTML = function(maxResults) {
 		let html = "";
 		let nEntries = 0;
 		
@@ -473,8 +473,6 @@ function AJDictionary() {
 		}
 		
 	};
-	
-	return this;
 	
 	function getIntAt(pos) {
 		const b1 = data[pos] & 0xFF;
