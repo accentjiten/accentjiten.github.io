@@ -131,8 +131,8 @@ var AccentJiten = (() => {
 			AJS.search(this, query);
 		}
 		
-		searchResultsToHTML(query) {
-			return AJHTML.searchResultsToHTML(this, query);
+		searchResultsToHTML() {
+			return AJHTML.searchResultsToHTML(this);
 		}
 		
 	}
