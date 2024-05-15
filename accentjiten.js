@@ -51,10 +51,12 @@ async function init() {
 		xhr.send();
 	});
 	
+	const uint8Array = new Uint8Array(arrayBuffer);
+	
 	worker.addEventListener("message", handleWorkerMessage);
 	
 	worker.postMessage(
-		{name: "load", arrayBuffer: arrayBuffer, uncompressedSize: metainfo.uncompressedSize}, [arrayBuffer]);
+		{name: "load", uint8Array: uint8Array, uncompressedSize: metainfo.uncompressedSize}, [arrayBuffer]);
 	
 	function handleWorkerMessage(event) {
 		const data = event.data;
