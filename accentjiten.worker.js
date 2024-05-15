@@ -52,10 +52,10 @@ var AccentJiten = (() => {
 	
 	class AJ {
 		
-		loadFromLZMA(arrayBuffer, uncompressedSize) {
-			const inUint8Array = new Uint8Array(arrayBuffer);
+		loadFromLZMA(uint8Array, uncompressedSize) {
 			let inOffset = 0;
-			const inStream = { readByte: () => inUint8Array[inOffset++] };
+			const inStream = { readByte: () => uint8Array[inOffset++] };
+			console.log(uint8Array);
 			
 			const outArrayBuffer = new ArrayBuffer(uncompressedSize);
 			const outUint8Array = new Uint8Array(outArrayBuffer);
@@ -599,7 +599,7 @@ function handleMessage(event) {
 	const data = event.data;
 	switch (data.name) {
 		case "load": {
-			AccentJiten.loadFromLZMA(data.arrayBuffer, data.uncompressedSize);
+			AccentJiten.loadFromLZMA(data.uint8Array, data.uncompressedSize);
 			postMessage({name: "onload"});
 			break;
 		}
