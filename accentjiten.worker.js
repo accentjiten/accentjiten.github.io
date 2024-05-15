@@ -55,7 +55,6 @@ var AccentJiten = (() => {
 		loadFromLZMA(uint8Array, uncompressedSize) {
 			let inOffset = 0;
 			const inStream = { readByte: () => uint8Array[inOffset++] };
-			console.log(uint8Array);
 			
 			const outArrayBuffer = new ArrayBuffer(uncompressedSize);
 			const outUint8Array = new Uint8Array(outArrayBuffer);
