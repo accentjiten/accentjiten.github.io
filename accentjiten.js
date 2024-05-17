@@ -33,30 +33,16 @@ async function init() {
 	const worker = new Worker("accentjiten.worker.js");
 	
 	const metainfo = {
-		version: 37,
+		version: 51,
 		uncompressedSize: 16600160
 	};
 	
-	const arrayBuffer = await new Promise((resolve, reject) => {
-		const xhr = new XMLHttpRequest();
-		xhr.responseType = "arraybuffer";
-		xhr.addEventListener("loadend", (event) => {
-			if (xhr.status >= 200 && xhr.status <= 299) {
-				resolve(xhr.response);
-			} else {
-				reject(new Error());
-			}
-		});
-		xhr.open("GET", "accentjiten.dat.lzma");
-		xhr.send();
-	});
-	
-	const uint8Array = new Uint8Array(arrayBuffer);
+	const arrayBuffer = await cacheURLInLocalStorage("accentjiten.dat.lzma", metainfo.version);
 	
 	worker.addEventListener("message", handleWorkerMessage);
 	
 	worker.postMessage(
-		{name: "load", uint8Array: uint8Array, uncompressedSize: metainfo.uncompressedSize}, [arrayBuffer]);
+		{name: "load", arrayBuffer: arrayBuffer, uncompressedSize: metainfo.uncompressedSize}, [arrayBuffer]);
 	
 	function handleWorkerMessage(event) {
 		const data = event.data;
@@ -82,6 +68,54 @@ async function init() {
 				searchResults.innerHTML = data.html2;
 				break;
 			}
+		}
+		
+	}
+	
+	async function cacheURLInLocalStorage(url, version) {
+		const cacheKey = url + "|" + "cache";
+		const versionKey = url + "|" + "version";
+		
+		if (localStorage.getItem(versionKey) === version.toString()) {
+			const arrayBuffer = await getArrayBufferFromLocalStorage(cacheKey);
+			console.log("Read " + url + " version " + version + " from localStorage");
+			return arrayBuffer;
+		} else {
+			const arrayBuffer = await new Promise((resolve, reject) => {
+				const xhr = new XMLHttpRequest();
+				xhr.responseType = "arraybuffer";
+				xhr.addEventListener("loadend", (event) => {
+					if (xhr.status >= 200 && xhr.status <= 299) {
+						resolve(xhr.response);
+					} else {
+						reject(new Error());
+					}
+				});
+				xhr.open("GET", url);
+				xhr.send();
+			});
+			await setArrayBufferToLocalStorage(arrayBuffer, cacheKey);
+			localStorage.setItem(versionKey, version.toString());
+			console.log("Downloaded " + url + " version " + version + " and cached to localStorage");
+			return arrayBuffer;
+		}
+		
+		async function getArrayBufferFromLocalStorage(key) {
+			const base64Url = localStorage.getItem(key);
+			return await new Promise((resolve, reject) => {
+				fetch(base64Url)
+					.then(response => response.arrayBuffer())
+					.then(arrayBuffer => resolve(arrayBuffer));
+			});
+		}
+		
+		async function setArrayBufferToLocalStorage(arrayBuffer, key) {
+			const base64Url = await new Promise((resolve, reject) => {
+				const reader = new FileReader();
+				reader.onload = () => resolve(reader.result);
+				reader.readAsDataURL(new Blob([arrayBuffer]));
+			});
+			localStorage.setItem(key, base64Url);
 		}
 		
 	}
