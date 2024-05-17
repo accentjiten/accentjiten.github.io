@@ -81,19 +81,8 @@ async function init() {
 			console.log("Read " + url + " version " + version + " from localStorage");
 			return arrayBuffer;
 		} else {
-			const arrayBuffer = await new Promise((resolve, reject) => {
-				const xhr = new XMLHttpRequest();
-				xhr.responseType = "arraybuffer";
-				xhr.addEventListener("loadend", (event) => {
-					if (xhr.status >= 200 && xhr.status <= 299) {
-						resolve(xhr.response);
-					} else {
-						reject(new Error());
-					}
-				});
-				xhr.open("GET", url);
-				xhr.send();
-			});
+			const arrayBuffer = (await (await fetch(url)).arrayBuffer());
+			if (!arrayBuffer) { throw new Error(); }
 			await setArrayBufferToLocalStorage(arrayBuffer, cacheKey);
 			localStorage.setItem(versionKey, version.toString());
 			console.log("Downloaded " + url + " version " + version + " and cached to localStorage");
@@ -102,11 +91,7 @@ async function init() {
 		
 		async function getArrayBufferFromLocalStorage(key) {
 			const base64Url = localStorage.getItem(key);
-			return await new Promise((resolve, reject) => {
-				fetch(base64Url)
-					.then(response => response.arrayBuffer())
-					.then(arrayBuffer => resolve(arrayBuffer));
-			});
+			return (await (await fetch(base64Url)).arrayBuffer());
 		}
 		
 		async function setArrayBufferToLocalStorage(arrayBuffer, key) {
