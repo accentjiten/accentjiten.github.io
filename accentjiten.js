@@ -30,25 +30,29 @@ async function init() {
 	
 	const searchResults = document.createElement("p");
 	
-	const worker = new Worker("accentjiten.worker.js");
-	
 	const metainfo = {
 		version: 51,
 		uncompressedSize: 16600160
 	};
 	
-	const arrayBuffer = await cacheURLInLocalStorage("accentjiten.dat.lzma", metainfo.version);
-	
-	worker.addEventListener("message", handleWorkerMessage);
-	
-	worker.postMessage(
-		{name: "load", arrayBuffer: arrayBuffer, uncompressedSize: metainfo.uncompressedSize}, [arrayBuffer]);
+	try {
+		var worker = new Worker("accentjiten.worker.js");
+		const arrayBuffer = await cacheURLInLocalStorage("accentjiten.dat.lzma", metainfo.version);
+		worker.addEventListener("message", handleWorkerMessage);
+		worker.postMessage(
+			{name: "load", arrayBuffer: arrayBuffer, uncompressedSize: metainfo.uncompressedSize},
+			[arrayBuffer]);
+	} catch (error) {
+		loadingMsg.innerHTML = "Error";
+		throw error;
+	}
 	
 	function handleWorkerMessage(event) {
 		const data = event.data;
 		
 		switch (data.name) {
-			case "onload": {
+			
+			case "loadsuccess": {
 				const title = document.createElement("p");
 				title.innerHTML = "accentjiten [alpha]";
 				document.body.removeChild(loadingMsg);
@@ -63,11 +67,18 @@ async function init() {
 				input.focus();
 				break;
 			}
-			case "onsearch": {
+			
+			case "loaderror": {
+				loadingMsg.innerHTML = "Error";
+				break;
+			}
+			
+			case "searchsuccess": {
 				desc.innerHTML = data.html1;
 				searchResults.innerHTML = data.html2;
 				break;
 			}
+			
 		}
 		
 	}
@@ -78,6 +89,7 @@ async function init() {
 		
 		if (localStorage.getItem(versionKey) === version.toString()) {
 			const arrayBuffer = await getArrayBufferFromLocalStorage(cacheKey);
+			if (!arrayBuffer) { throw new Error(); }
 			console.log("Read " + url + " version " + version + " from localStorage");
 			return arrayBuffer;
 		} else {

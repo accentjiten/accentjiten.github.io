@@ -582,9 +582,9 @@ var AccentJiten = (() => {
 	
 	const aj = new AJ();
 	return {
-		loadFromLZMA: aj.loadFromLZMA,
-		search: aj.search,
-		searchResultsToHTML: aj.searchResultsToHTML
+		loadFromLZMA: (arrayBuffer, uncompressedSize) => { aj.loadFromLZMA(arrayBuffer, uncompressedSize); },
+		search: (query) => { aj.search(query); },
+		searchResultsToHTML: () => { return aj.searchResultsToHTML(); }
 	};
 	
 })();
@@ -598,17 +598,29 @@ function handleMessage(event) {
 	
 	const data = event.data;
 	switch (data.name) {
+		
 		case "load": {
-			AccentJiten.loadFromLZMA(data.arrayBuffer, data.uncompressedSize);
-			postMessage({name: "onload"});
+			let success = true;
+			try {
+				AccentJiten.loadFromLZMA(data.arrayBuffer, data.uncompressedSize);
+			} catch (error) {
+				success = false;
+			}
+			if (success) {
+				postMessage({name: "loadsuccess"});
+			} else {
+				postMessage({name: "loaderror"});
+			}
 			break;
 		}
+		
 		case "search": {
 			AccentJiten.search(data.query);
 			const html = AccentJiten.searchResultsToHTML();
-			postMessage({name: "onsearch", html1: html.html1, html2: html.html2});
+			postMessage({name: "searchsuccess", html1: html.html1, html2: html.html2});
 			break;
 		}
+		
 	}
 	
 }
