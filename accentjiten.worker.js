@@ -64,7 +64,7 @@ var AccentJiten = (() => {
 			
 			LZMA.decompressFile(inStream, outStream);
 			
-			const data = new Uint8Array(outArrayBuffer);
+			const data = new DataView(outArrayBuffer);
 			
 			const entryArrayLength = AJD.getIntAt(data, 0);
 			const syllableFormPoolOffset = 4 + (entryArrayLength * 12);
@@ -470,112 +470,106 @@ var AccentJiten = (() => {
 	
 	class AJD {
 		
-		static getIntAt(uint8Array, pos) {
-			const b1 = uint8Array[pos] & 0xFF;
-			const b2 = uint8Array[pos + 1] & 0xFF;
-			const b3 = uint8Array[pos + 2] & 0xFF;
-			const b4 = uint8Array[pos + 3] & 0xFF;
-			return ((b1 << 24) + (b2 << 16) + (b3 << 8) + (b4));
+		static getIntAt(dataView, pos) {
+			return dataView.getUint32(pos);
 		}
 		
-		static getCharAt(uint8Array, pos) {
-			const b1 = uint8Array[pos] & 0xFF;
-			const b2 = uint8Array[pos + 1] & 0xFF;
-			return ((b1 << 8) + (b2));
+		static getCharCodeAt(dataView, pos) {
+			return dataView.getUint16(pos);
 		}
 		
-		static getStringAt(uint8Array, pos) {
-			const len = AJD.getIntAt(uint8Array, pos);
+		static getStringAt(dataView, pos) {
+			const len = AJD.getIntAt(dataView, pos);
 			const chars = [];
 			for (let i = 0; i < len; i++) {
-				const charCode = AJD.getCharAt(uint8Array, (pos + 4) + (i * 2));
+				const charCode = AJD.getCharCodeAt(dataView, (pos + 4) + (i * 2));
 				chars.push(String.fromCharCode(charCode));
 			}
 			return chars.join("");
 		}
 		
-		static entryArray_getLength(uint8Array) {
-			return AJD.getIntAt(uint8Array, 0);
+		static entryArray_getLength(dataView) {
+			return AJD.getIntAt(dataView, 0);
 		}
 		
-		static entryArray_getEntry_entryOffset(uint8Array, index) {
+		static entryArray_getEntry_entryOffset(dataView, index) {
 			return 4 + (12 * index);
 		}
 		
-		static entry_getWordVariants_stringArrayOffset(uint8Array, entryOffset) {
-			return AJD.getIntAt(uint8Array, entryOffset);
+		static entry_getWordVariants_stringArrayOffset(dataView, entryOffset) {
+			return AJD.getIntAt(dataView, entryOffset);
 		}
 		
-		static entry_getReadings_syllableArrayArrayOffset(uint8Array, entryOffset) {
-			return AJD.getIntAt(uint8Array, entryOffset + 4);
+		static entry_getReadings_syllableArrayArrayOffset(dataView, entryOffset) {
+			return AJD.getIntAt(dataView, entryOffset + 4);
 		}
 		
-		static entry_getPronunciations_pronunciationArrayOffset(uint8Array, entryOffset) {
-			return AJD.getIntAt(uint8Array, entryOffset + 8);
+		static entry_getPronunciations_pronunciationArrayOffset(dataView, entryOffset) {
+			return AJD.getIntAt(dataView, entryOffset + 8);
 		}
 		
-		static stringArray_getLength(uint8Array, stringArrayOffset) {
-			return AJD.getIntAt(uint8Array, stringArrayOffset);
+		static stringArray_getLength(dataView, stringArrayOffset) {
+			return AJD.getIntAt(dataView, stringArrayOffset);
 		}
 		
-		static stringArray_getString_stringOffset(uint8Array, stringArrayOffset, index) {
-			return AJD.getIntAt(uint8Array, (stringArrayOffset + 4) + (index * 4));
+		static stringArray_getString_stringOffset(dataView, stringArrayOffset, index) {
+			return AJD.getIntAt(dataView, (stringArrayOffset + 4) + (index * 4));
 		}
 		
-		static string_get(uint8Array, stringOffset) {
-			return AJD.getStringAt(uint8Array, stringOffset);
+		static string_get(dataView, stringOffset) {
+			return AJD.getStringAt(dataView, stringOffset);
 		}
 		
-		static string_getLength(uint8Array, stringOffset) {
-			return AJD.getIntAt(uint8Array, stringOffset);
+		static string_getLength(dataView, stringOffset) {
+			return AJD.getIntAt(dataView, stringOffset);
 		}
 		
-		static string_getChar(uint8Array, stringOffset, index) {
-			return AJD.getCharAt(uint8Array, (stringOffset + 4) + (index * 2));
+		static string_getChar(dataView, stringOffset, index) {
+			return AJD.getCharCodeAt(dataView, (stringOffset + 4) + (index * 2));
 		}
 		
-		static syllableArrayArray_getLength(uint8Array, syllableArrayArrayOffset) {
-			return AJD.getIntAt(uint8Array, syllableArrayArrayOffset);
+		static syllableArrayArray_getLength(dataView, syllableArrayArrayOffset) {
+			return AJD.getIntAt(dataView, syllableArrayArrayOffset);
 		}
 		
-		static syllableArrayArray_getSyllableArray_syllableArrayOffset(uint8Array, syllableArrayArrayOffset, index) {
-			return AJD.getIntAt(uint8Array, (syllableArrayArrayOffset + 4) + (index * 4));
+		static syllableArrayArray_getSyllableArray_syllableArrayOffset(dataView, syllableArrayArrayOffset, index) {
+			return AJD.getIntAt(dataView, (syllableArrayArrayOffset + 4) + (index * 4));
 		}
 		
-		static syllableArray_getLength(uint8Array, syllableArrayOffset) {
-			return AJD.getIntAt(uint8Array, syllableArrayOffset);
+		static syllableArray_getLength(dataView, syllableArrayOffset) {
+			return AJD.getIntAt(dataView, syllableArrayOffset);
 		}
 		
-		static syllableArray_getSyllable_syllablePoolIndex(uint8Array, syllableArrayOffset, index) {
-			return AJD.getIntAt(uint8Array, (syllableArrayOffset + 4) + (index * 4));
+		static syllableArray_getSyllable_syllablePoolIndex(dataView, syllableArrayOffset, index) {
+			return AJD.getIntAt(dataView, (syllableArrayOffset + 4) + (index * 4));
 		}
 		
-		static pronunciationArray_getLength(uint8Array, pronunciationArrayOffset) {
-			return AJD.getIntAt(uint8Array, pronunciationArrayOffset);
+		static pronunciationArray_getLength(dataView, pronunciationArrayOffset) {
+			return AJD.getIntAt(dataView, pronunciationArrayOffset);
 		}
 		
-		static pronunciationArray_getPronunciation_pronunciationOffset(uint8Array, pronunciationArrayOffset, index) {
-			return AJD.getIntAt(uint8Array, (pronunciationArrayOffset + 4) + (index * 4));
+		static pronunciationArray_getPronunciation_pronunciationOffset(dataView, pronunciationArrayOffset, index) {
+			return AJD.getIntAt(dataView, (pronunciationArrayOffset + 4) + (index * 4));
 		}
 		
-		static pronunciation_getReading_syllableArrayOffset(uint8Array, pronunciationOffset) {
-			return AJD.getIntAt(uint8Array, pronunciationOffset);
+		static pronunciation_getReading_syllableArrayOffset(dataView, pronunciationOffset) {
+			return AJD.getIntAt(dataView, pronunciationOffset);
 		}
 		
-		static pronunciation_getAccent(uint8Array, pronunciationOffset) {
-			return AJD.getIntAt(uint8Array, pronunciationOffset + 4);
+		static pronunciation_getAccent(dataView, pronunciationOffset) {
+			return AJD.getIntAt(dataView, pronunciationOffset + 4);
 		}
 		
-		static pronunciation_getSources_sourceArrayOffset(uint8Array, pronunciationOffset) {
-			return AJD.getIntAt(uint8Array, pronunciationOffset + 8);
+		static pronunciation_getSources_sourceArrayOffset(dataView, pronunciationOffset) {
+			return AJD.getIntAt(dataView, pronunciationOffset + 8);
 		}
 		
-		static sourceArray_getLength(uint8Array, sourceArrayOffset) {
-			return AJD.getIntAt(uint8Array, sourceArrayOffset);
+		static sourceArray_getLength(dataView, sourceArrayOffset) {
+			return AJD.getIntAt(dataView, sourceArrayOffset);
 		}
 		
-		static sourceArray_getSource(uint8Array, sourceArrayOffset, index) {
-			return AJD.getIntAt(uint8Array, (sourceArrayOffset + 4) + (index * 4));
+		static sourceArray_getSource(dataView, sourceArrayOffset, index) {
+			return AJD.getIntAt(dataView, (sourceArrayOffset + 4) + (index * 4));
 		}
 		
 	}
