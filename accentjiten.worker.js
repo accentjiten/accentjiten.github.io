@@ -397,12 +397,13 @@ var AccentJiten = (() => {
 					AJD.pronunciationArray_getPronunciation_pronunciationOffset(data, pronunciationArrayOffset, i);
 				const syllableArrayOffset =
 					AJD.pronunciation_getReading_syllableArrayOffset(data, pronunciationOffset);
-				const accent = AJD.pronunciation_getAccent(data, pronunciationOffset);
+				const accentStringOffset = AJD.pronunciation_getAccent_stringOffset(data, pronunciationOffset);
 				const sourceArrayOffset = AJD.pronunciation_getSources_sourceArrayOffset(data, pronunciationOffset);
 				
 				const syllableArrayLength = AJD.syllableArray_getLength(data, syllableArrayOffset);
 				html += "<div class=\"tonetext\">";
-				let nMora = 0;
+				let iMora = 0;
+				const nMora = AJD.string_getLength(data, accentStringOffset);
 				for (let j = 0; j < syllableArrayLength; j++) {
 					const syllablePoolIndex =
 						AJD.syllableArray_getSyllable_syllablePoolIndex(data, syllableArrayOffset, j);
@@ -412,27 +413,20 @@ var AccentJiten = (() => {
 					const moras = syllable.hiraganaOrKatakana === 0
 						? syllableForm.hiraganaMoras : syllableForm.katakanaMoras;
 					for (const mora of moras) {
-						if (accent === 0) {
-							if (nMora === 0) {
-								html += "<span class=\"lowtonenexthigh\">";
-							} else {
-								html += "<span class=\"hightone\">";
-							}
-						} else if (accent === 1) {
-							if (nMora === 0) {
-								html += "<span class=\"hightone\">";
-							} else if (nMora === 1) {
-								html += "<span class=\"lowtoneprevioushigh\">";
-							} else {
-								html += "<span class=\"lowtone\">";
-							}
+						const moraIsHigh = AJD.string_getChar(data, accentStringOffset, iMora) === "H".charCodeAt(0);
+						if (moraIsHigh) {
+							html += "<span class=\"hightone\">";
 						} else {
-							if (nMora === 0) {
+							const nextMoraIsHigh = iMora + 1 < nMora
+								&& AJD.string_getChar(data, accentStringOffset, iMora + 1) === "H".charCodeAt(0);
+							const prevMoraIsHigh = iMora > 0
+								&& AJD.string_getChar(data, accentStringOffset, iMora - 1) === "H".charCodeAt(0);
+							if (nextMoraIsHigh && prevMoraIsHigh) {
+								html += "<span class=\"lowtonenextandprevioushigh\">";
+							} else if (nextMoraIsHigh) {
 								html += "<span class=\"lowtonenexthigh\">";
-							} else if (nMora === accent) {
+							} else if (prevMoraIsHigh) {
 								html += "<span class=\"lowtoneprevioushigh\">";
-							} else if (nMora < accent) {
-								html += "<span class=\"hightone\">";
 							} else {
 								html += "<span class=\"lowtone\">";
 							}
@@ -440,11 +434,13 @@ var AccentJiten = (() => {
 						html += AJHTML.escapeHTML(mora);
 						html += "</span>";
 						if (!isNakaguro) {
-							nMora++;
+							iMora++;
 						}
 					}
 				}
-				if (nMora === accent) {
+				if (AJD.string_getChar(data, accentStringOffset, iMora - 1) === "H".charCodeAt(0)
+						&& AJD.string_getChar(data, accentStringOffset, iMora) === "-".charCodeAt(0)
+						&& AJD.string_getChar(data, accentStringOffset, iMora + 1) === "L".charCodeAt(0)) {
 					html += "<span class=\"lowtoneprevioushigh\"></span>";
 				}
 				html += "</div>";
@@ -556,7 +552,7 @@ var AccentJiten = (() => {
 			return AJD.getIntAt(dataView, pronunciationOffset);
 		}
 		
-		static pronunciation_getAccent(dataView, pronunciationOffset) {
+		static pronunciation_getAccent_stringOffset(dataView, pronunciationOffset) {
 			return AJD.getIntAt(dataView, pronunciationOffset + 4);
 		}
 		

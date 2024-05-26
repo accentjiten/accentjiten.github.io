@@ -31,21 +31,24 @@ async function init() {
 	const searchResults = document.createElement("p");
 	
 	const metainfo = {
-		version: 51,
+		version: 54,
 		uncompressedSize: 16600160
 	};
 	
-	try {
-		var worker = new Worker("accentjiten.worker.js");
-		const arrayBuffer = await cacheURLInLocalStorage("accentjiten.dat.lzma", metainfo.version);
-		worker.addEventListener("message", handleWorkerMessage);
-		worker.postMessage(
-			{name: "load", arrayBuffer: arrayBuffer, uncompressedSize: metainfo.uncompressedSize},
-			[arrayBuffer]);
-	} catch (error) {
-		loadingMsg.innerHTML = "Error";
-		throw error;
-	}
+	const worker = await (async function() {
+		try {
+			const worker = new Worker("accentjiten.worker.js");
+			const arrayBuffer = await cacheURLInLocalStorage("accentjiten.dat.lzma", metainfo.version);
+			worker.addEventListener("message", handleWorkerMessage);
+			worker.postMessage(
+				{name: "load", arrayBuffer: arrayBuffer, uncompressedSize: metainfo.uncompressedSize},
+				[arrayBuffer]);
+			return worker;
+		} catch (error) {
+			loadingMsg.innerHTML = "Error";
+			throw error;
+		}
+	})();
 	
 	function handleWorkerMessage(event) {
 		const data = event.data;
