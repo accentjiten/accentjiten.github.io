@@ -216,9 +216,9 @@ var AccentJiten = (() => {
 			const queryLength = query.length;
 			for (let i = 0; i < queryLength; i++) {
 				if (i >= stringLength) return null;
-				const stringChar = AJD.string_getChar(data, stringOffset, i);
-				const queryChar = query.charCodeAt(i);
-				if (stringChar !== queryChar) return AJS.NO_MATCH;
+				const stringCharCode = AJD.string_getCharCode(data, stringOffset, i);
+				const queryCharCode = query.charCodeAt(i);
+				if (stringCharCode !== queryCharCode) return AJS.NO_MATCH;
 			}
 			return stringLength === queryLength ? AJS.EXACT_MATCH : AJS.NON_EXACT_MATCH;
 		}
@@ -403,7 +403,7 @@ var AccentJiten = (() => {
 				const syllableArrayLength = AJD.syllableArray_getLength(data, syllableArrayOffset);
 				html += "<div class=\"tonetext\">";
 				let iMora = 0;
-				const nMora = AJD.string_getLength(data, accentStringOffset);
+				const nMora = AJD.string_getLength(data, accentStringOffset) - 2;
 				for (let j = 0; j < syllableArrayLength; j++) {
 					const syllablePoolIndex =
 						AJD.syllableArray_getSyllable_syllablePoolIndex(data, syllableArrayOffset, j);
@@ -413,14 +413,17 @@ var AccentJiten = (() => {
 					const moras = syllable.hiraganaOrKatakana === 0
 						? syllableForm.hiraganaMoras : syllableForm.katakanaMoras;
 					for (const mora of moras) {
-						const moraIsHigh = AJD.string_getChar(data, accentStringOffset, iMora) === "H".charCodeAt(0);
+						const moraIsHigh = AJD.string_getCharCode(data, accentStringOffset, iMora) === "H".charCodeAt(0);
 						if (moraIsHigh) {
 							html += "<span class=\"hightone\">";
 						} else {
-							const nextMoraIsHigh = iMora + 1 < nMora
-								&& AJD.string_getChar(data, accentStringOffset, iMora + 1) === "H".charCodeAt(0);
-							const prevMoraIsHigh = iMora > 0
-								&& AJD.string_getChar(data, accentStringOffset, iMora - 1) === "H".charCodeAt(0);
+							const nextMoraAcc = iMora + 1 === nMora
+								? AJD.string_getCharCode(data, accentStringOffset, iMora + 2)
+								: AJD.string_getCharCode(data, accentStringOffset, iMora + 1);
+							const prevMoraAcc = iMora < 1 ? null
+								: AJD.string_getCharCode(data, accentStringOffset, iMora - 1);
+							const nextMoraIsHigh = nextMoraAcc === "H".charCodeAt(0);
+							const prevMoraIsHigh = prevMoraAcc === "H".charCodeAt(0);
 							if (nextMoraIsHigh && prevMoraIsHigh) {
 								html += "<span class=\"lowtonenextandprevioushigh\">";
 							} else if (nextMoraIsHigh) {
@@ -438,9 +441,9 @@ var AccentJiten = (() => {
 						}
 					}
 				}
-				if (AJD.string_getChar(data, accentStringOffset, iMora - 1) === "H".charCodeAt(0)
-						&& AJD.string_getChar(data, accentStringOffset, iMora) === "-".charCodeAt(0)
-						&& AJD.string_getChar(data, accentStringOffset, iMora + 1) === "L".charCodeAt(0)) {
+				if (AJD.string_getCharCode(data, accentStringOffset, iMora - 1) === "H".charCodeAt(0)
+						&& AJD.string_getCharCode(data, accentStringOffset, iMora) === "-".charCodeAt(0)
+						&& AJD.string_getCharCode(data, accentStringOffset, iMora + 1) === "L".charCodeAt(0)) {
 					html += "<span class=\"lowtoneprevioushigh\"></span>";
 				}
 				html += "</div>";
@@ -520,7 +523,7 @@ var AccentJiten = (() => {
 			return AJD.getIntAt(dataView, stringOffset);
 		}
 		
-		static string_getChar(dataView, stringOffset, index) {
+		static string_getCharCode(dataView, stringOffset, index) {
 			return AJD.getCharCodeAt(dataView, (stringOffset + 4) + (index * 2));
 		}
 		
