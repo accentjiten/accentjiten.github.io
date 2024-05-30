@@ -31,8 +31,8 @@ async function init() {
 	const searchResults = document.createElement("p");
 	
 	const metainfo = {
-		version: 54,
-		uncompressedSize: 16600160
+		version: 56,
+		uncompressedSize: 29650112
 	};
 	
 	const worker = await (async function() {
@@ -98,9 +98,18 @@ async function init() {
 		} else {
 			const arrayBuffer = (await (await fetch(url)).arrayBuffer());
 			if (!arrayBuffer) { throw new Error(); }
-			await setArrayBufferToLocalStorage(arrayBuffer, cacheKey);
-			localStorage.setItem(versionKey, version.toString());
-			console.log("Downloaded " + url + " version " + version + " and cached to localStorage");
+			let success = true;
+			try {
+				await setArrayBufferToLocalStorage(arrayBuffer, cacheKey);
+				localStorage.setItem(versionKey, version.toString());
+			} catch (error) {
+				success = false;
+			}
+			if (success) {
+				console.log("Downloaded " + url + " version " + version + " and cached to localStorage");
+			} else {
+				console.log("Downloaded " + url + " version " + version + ", failed to cache to localStorage");
+			}
 			return arrayBuffer;
 		}
 		
