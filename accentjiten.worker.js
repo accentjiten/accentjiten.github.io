@@ -100,14 +100,13 @@ var AccentJiten = (() => {
 					pos += 4 + (romaji[j].length * 2);
 				}
 				
-				const isNakaguro =
-					(hiraganaMoras[0] === "・"
-					|| hiraganaMoras[0] === "…"
-					|| hiraganaMoras[0] === "。") ? true : false;
+				const isPunctuationValue = AJD.getIntAt(data, pos);
+				pos += 4;
+				const isPunctuation = isPunctuationValue ? true : false;
 				
 				syllableFormPool[i] = { hiraganaMoras: hiraganaMoras, katakanaMoras: katakanaMoras, romaji: romaji,
 					hiraganaSyllable: hiraganaMoras.join(""), katakanaSyllable: katakanaMoras.join(""),
-					poolIndex: i, isNakaguro: isNakaguro };
+					poolIndex: i, isPunctuation: isPunctuation };
 			}
 			
 			const nSyllablePool = AJD.getIntAt(data, pos);
@@ -414,14 +413,14 @@ var AccentJiten = (() => {
 						AJD.syllableArray_getSyllable_syllablePoolIndex(data, syllableArrayOffset, j);
 					const syllable = syllablePool[syllablePoolIndex];
 					const syllableForm = syllable.form;
-					const isNakaguro = syllableForm.isNakaguro;
+					const isPunctuation = syllableForm.isPunctuation;
 					const moras = syllable.hiraganaOrKatakana === 0
 						? syllableForm.hiraganaMoras : syllableForm.katakanaMoras;
 					for (const mora of moras) {
 						const moraIsHigh = AJD.string_getCharCode(data, accentStringOffset, iMora) === "H".charCodeAt(0);
 						if (moraIsHigh) {
 							html += "<span class=\"hightone\">";
-						} else if (isNakaguro) {
+						} else if (isPunctuation) {
 							html += "<span class=\"lowtone\">";
 						} else {
 							const nextMoraChar = iMora + 1 === nMora
@@ -443,7 +442,7 @@ var AccentJiten = (() => {
 						}
 						html += AJHTML.escapeHTML(mora);
 						html += "</span>";
-						if (!isNakaguro) {
+						if (!isPunctuation) {
 							iMora++;
 						}
 					}

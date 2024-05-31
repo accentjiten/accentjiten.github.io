@@ -31,7 +31,7 @@ async function init() {
 	const searchResults = document.createElement("p");
 	
 	const metainfo = {
-		version: 56,
+		version: 58,
 		uncompressedSize: 29650112
 	};
 	
