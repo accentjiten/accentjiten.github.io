@@ -417,10 +417,11 @@ var AccentJiten = (() => {
 					const moras = syllable.hiraganaOrKatakana === 0
 						? syllableForm.hiraganaMoras : syllableForm.katakanaMoras;
 					for (const mora of moras) {
-						const moraIsHigh = AJD.string_getCharCode(data, accentStringOffset, iMora) === "H".charCodeAt(0);
+						const moraIsHigh = AJD.string_getCharCode(data, accentStringOffset,
+							iMora >= nMora ? nMora - 1 : iMora) === "H".charCodeAt(0);
 						if (moraIsHigh) {
 							html += "<span class=\"hightone\">";
-						} else if (isPunctuation) {
+						} else if (isPunctuation && iMora === 0) {
 							html += "<span class=\"lowtone\">";
 						} else {
 							const nextMoraChar = iMora + 1 === nMora
