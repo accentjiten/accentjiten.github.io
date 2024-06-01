@@ -31,8 +31,8 @@ async function init() {
 	const searchResults = document.createElement("p");
 	
 	const metainfo = {
-		version: 60,
-		uncompressedSize: 29650112
+		version: 62,
+		uncompressedSize: 29558240
 	};
 	
 	const worker = await (async function() {
