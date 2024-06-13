@@ -6,68 +6,92 @@ Copyright (c) 2024 accentjiten
 
 */
 
-onmessage = handleMessage;
-
-
-
-
-
-/*
-
-https://github.com/jcmellado/js-lzma
-
-Copyright (c) 2011 Juan Mellado
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
-References:
-- "LZMA SDK" by Igor Pavlov
-  http://www.7-zip.org/sdk.html
-- "The .lzma File Format" from xz documentation
-  https://github.com/joachimmetz/xz/blob/master/doc/lzma-file-format.txt
-
-*/
-var LZMA=LZMA||{};!function(e){"use strict";e.OutWindow=function(){this._windowSize=0},e.OutWindow.prototype.create=function(e){this._buffer&&this._windowSize===e||(this._buffer=new Uint8Array(e)),this._windowSize=e,this._pos=0,this._streamPos=0},e.OutWindow.prototype.flush=function(){var e=this._pos-this._streamPos;if(0!==e){if(this._stream.writeBytes)this._stream.writeBytes(this._buffer,e);else for(var t=0;t<e;t++)this._stream.writeByte(this._buffer[t]);this._pos>=this._windowSize&&(this._pos=0),this._streamPos=this._pos}},e.OutWindow.prototype.releaseStream=function(){this.flush(),this._stream=null},e.OutWindow.prototype.setStream=function(e){this.releaseStream(),this._stream=e},e.OutWindow.prototype.init=function(e){e||(this._streamPos=0,this._pos=0)},e.OutWindow.prototype.copyBlock=function(e,t){var i=this._pos-e-1;for(i<0&&(i+=this._windowSize);t--;)i>=this._windowSize&&(i=0),this._buffer[this._pos++]=this._buffer[i++],this._pos>=this._windowSize&&this.flush()},e.OutWindow.prototype.putByte=function(e){this._buffer[this._pos++]=e,this._pos>=this._windowSize&&this.flush()},e.OutWindow.prototype.getByte=function(e){var t=this._pos-e-1;return t<0&&(t+=this._windowSize),this._buffer[t]},e.RangeDecoder=function(){},e.RangeDecoder.prototype.setStream=function(e){this._stream=e},e.RangeDecoder.prototype.releaseStream=function(){this._stream=null},e.RangeDecoder.prototype.init=function(){var e=5;for(this._code=0,this._range=-1;e--;)this._code=this._code<<8|this._stream.readByte()},e.RangeDecoder.prototype.decodeDirectBits=function(e){for(var t,i=0,o=e;o--;)this._range>>>=1,t=this._code-this._range>>>31,this._code-=this._range&t-1,i=i<<1|1-t,(4278190080&this._range)==0&&(this._code=this._code<<8|this._stream.readByte(),this._range<<=8);return i},e.RangeDecoder.prototype.decodeBit=function(e,t){var i=e[t],o=(this._range>>>11)*i;return(2147483648^this._code)<(2147483648^o)?(this._range=o,e[t]+=2048-i>>>5,(4278190080&this._range)==0&&(this._code=this._code<<8|this._stream.readByte(),this._range<<=8),0):(this._range-=o,this._code-=o,e[t]-=i>>>5,(4278190080&this._range)==0&&(this._code=this._code<<8|this._stream.readByte(),this._range<<=8),1)},e.initBitModels=function(e,t){for(;t--;)e[t]=1024},e.BitTreeDecoder=function(e){this._models=[],this._numBitLevels=e},e.BitTreeDecoder.prototype.init=function(){e.initBitModels(this._models,1<<this._numBitLevels)},e.BitTreeDecoder.prototype.decode=function(e){for(var t=1,i=this._numBitLevels;i--;)t=t<<1|e.decodeBit(this._models,t);return t-(1<<this._numBitLevels)},e.BitTreeDecoder.prototype.reverseDecode=function(e){for(var t,i=1,o=0,r=0;r<this._numBitLevels;++r)t=e.decodeBit(this._models,i),i=i<<1|t,o|=t<<r;return o},e.reverseDecode2=function(e,t,i,o){for(var r,s=1,d=0,n=0;n<o;++n)r=i.decodeBit(e,t+s),s=s<<1|r,d|=r<<n;return d},e.LenDecoder=function(){this._choice=[],this._lowCoder=[],this._midCoder=[],this._highCoder=new e.BitTreeDecoder(8),this._numPosStates=0},e.LenDecoder.prototype.create=function(t){for(;this._numPosStates<t;++this._numPosStates)this._lowCoder[this._numPosStates]=new e.BitTreeDecoder(3),this._midCoder[this._numPosStates]=new e.BitTreeDecoder(3)},e.LenDecoder.prototype.init=function(){var t=this._numPosStates;for(e.initBitModels(this._choice,2);t--;)this._lowCoder[t].init(),this._midCoder[t].init();this._highCoder.init()},e.LenDecoder.prototype.decode=function(e,t){return 0===e.decodeBit(this._choice,0)?this._lowCoder[t].decode(e):0===e.decodeBit(this._choice,1)?8+this._midCoder[t].decode(e):16+this._highCoder.decode(e)},e.Decoder2=function(){this._decoders=[]},e.Decoder2.prototype.init=function(){e.initBitModels(this._decoders,768)},e.Decoder2.prototype.decodeNormal=function(e){var t=1;do t=t<<1|e.decodeBit(this._decoders,t);while(t<256);return 255&t},e.Decoder2.prototype.decodeWithMatchByte=function(e,t){var i,o,r=1;do if(i=t>>7&1,t<<=1,o=e.decodeBit(this._decoders,(1+i<<8)+r),r=r<<1|o,i!==o){for(;r<256;)r=r<<1|e.decodeBit(this._decoders,r);break}while(r<256);return 255&r},e.LiteralDecoder=function(){},e.LiteralDecoder.prototype.create=function(t,i){var o;if(!this._coders||this._numPrevBits!==i||this._numPosBits!==t)for(this._numPosBits=t,this._posMask=(1<<t)-1,this._numPrevBits=i,this._coders=[],o=1<<this._numPrevBits+this._numPosBits;o--;)this._coders[o]=new e.Decoder2},e.LiteralDecoder.prototype.init=function(){for(var e=1<<this._numPrevBits+this._numPosBits;e--;)this._coders[e].init()},e.LiteralDecoder.prototype.getDecoder=function(e,t){return this._coders[((e&this._posMask)<<this._numPrevBits)+((255&t)>>>8-this._numPrevBits)]},e.Decoder=function(){this._outWindow=new e.OutWindow,this._rangeDecoder=new e.RangeDecoder,this._isMatchDecoders=[],this._isRepDecoders=[],this._isRepG0Decoders=[],this._isRepG1Decoders=[],this._isRepG2Decoders=[],this._isRep0LongDecoders=[],this._posSlotDecoder=[],this._posDecoders=[],this._posAlignDecoder=new e.BitTreeDecoder(4),this._lenDecoder=new e.LenDecoder,this._repLenDecoder=new e.LenDecoder,this._literalDecoder=new e.LiteralDecoder,this._dictionarySize=-1,this._dictionarySizeCheck=-1,this._posSlotDecoder[0]=new e.BitTreeDecoder(6),this._posSlotDecoder[1]=new e.BitTreeDecoder(6),this._posSlotDecoder[2]=new e.BitTreeDecoder(6),this._posSlotDecoder[3]=new e.BitTreeDecoder(6)},e.Decoder.prototype.setDictionarySize=function(e){return!(e<0)&&(this._dictionarySize!==e&&(this._dictionarySize=e,this._dictionarySizeCheck=Math.max(this._dictionarySize,1),this._outWindow.create(Math.max(this._dictionarySizeCheck,4096))),!0)},e.Decoder.prototype.setLcLpPb=function(e,t,i){var o=1<<i;return!(e>8)&&!(t>4)&&!(i>4)&&(this._literalDecoder.create(t,e),this._lenDecoder.create(o),this._repLenDecoder.create(o),this._posStateMask=o-1,!0)},e.Decoder.prototype.setProperties=function(e){if(!this.setLcLpPb(e.lc,e.lp,e.pb))throw Error("Incorrect stream properties");if(!this.setDictionarySize(e.dictionarySize))throw Error("Invalid dictionary size")},e.Decoder.prototype.decodeHeader=function(e){var t,i,o,r,s,d;return!(e.size<13)&&(i=(t=e.readByte())%9,o=(t=~~(t/9))%5,r=~~(t/5),d=e.readByte(),d|=e.readByte()<<8,d|=e.readByte()<<16,d+=16777216*e.readByte(),s=e.readByte(),s|=e.readByte()<<8,s|=e.readByte()<<16,s+=16777216*e.readByte(),e.readByte(),e.readByte(),e.readByte(),e.readByte(),{lc:i,lp:o,pb:r,dictionarySize:d,uncompressedSize:s})},e.Decoder.prototype.init=function(){var t=4;for(this._outWindow.init(!1),e.initBitModels(this._isMatchDecoders,192),e.initBitModels(this._isRep0LongDecoders,192),e.initBitModels(this._isRepDecoders,12),e.initBitModels(this._isRepG0Decoders,12),e.initBitModels(this._isRepG1Decoders,12),e.initBitModels(this._isRepG2Decoders,12),e.initBitModels(this._posDecoders,114),this._literalDecoder.init();t--;)this._posSlotDecoder[t].init();this._lenDecoder.init(),this._repLenDecoder.init(),this._posAlignDecoder.init(),this._rangeDecoder.init()},e.Decoder.prototype.decodeBody=function(t,i,o){var r,s,d,n,c,h,a=0,p=0,u=0,D=0,$=0,f=0,B=0;for(this._rangeDecoder.setStream(t),this._outWindow.setStream(i),this.init();o<0||f<o;)if(r=f&this._posStateMask,0===this._rangeDecoder.decodeBit(this._isMatchDecoders,(a<<4)+r))s=this._literalDecoder.getDecoder(f++,B),B=a>=7?s.decodeWithMatchByte(this._rangeDecoder,this._outWindow.getByte(p)):s.decodeNormal(this._rangeDecoder),this._outWindow.putByte(B),a=a<4?0:a-(a<10?3:6);else{if(1===this._rangeDecoder.decodeBit(this._isRepDecoders,a))d=0,0===this._rangeDecoder.decodeBit(this._isRepG0Decoders,a)?0===this._rangeDecoder.decodeBit(this._isRep0LongDecoders,(a<<4)+r)&&(a=a<7?9:11,d=1):(0===this._rangeDecoder.decodeBit(this._isRepG1Decoders,a)?n=u:(0===this._rangeDecoder.decodeBit(this._isRepG2Decoders,a)?n=D:(n=$,$=D),D=u),u=p,p=n),0===d&&(d=2+this._repLenDecoder.decode(this._rangeDecoder,r),a=a<7?8:11);else if($=D,D=u,u=p,d=2+this._lenDecoder.decode(this._rangeDecoder,r),a=a<7?7:10,(c=this._posSlotDecoder[d<=5?d-2:3].decode(this._rangeDecoder))>=4){if(h=(c>>1)-1,p=(2|1&c)<<h,c<14)p+=e.reverseDecode2(this._posDecoders,p-c-1,this._rangeDecoder,h);else if(p+=this._rangeDecoder.decodeDirectBits(h-4)<<4,(p+=this._posAlignDecoder.reverseDecode(this._rangeDecoder))<0){if(-1===p)break;return!1}}else p=c;if(p>=f||p>=this._dictionarySizeCheck)return!1;this._outWindow.copyBlock(p,d),f+=d,B=this._outWindow.getByte(0)}return this._outWindow.flush(),this._outWindow.releaseStream(),this._rangeDecoder.releaseStream(),!0},e.Decoder.prototype.setDecoderProperties=function(e){var t,i,o,r,s;return!(e.size<5)&&(i=(t=e.readByte())%9,o=(t=~~(t/9))%5,r=~~(t/5),!!this.setLcLpPb(i,o,r)&&(s=e.readByte(),s|=e.readByte()<<8,s|=e.readByte()<<16,s+=16777216*e.readByte(),this.setDictionarySize(s)))},e.decompress=function(t,i,o,r){var s=new e.Decoder;if(!s.setDecoderProperties(t))throw Error("Incorrect lzma stream properties");if(!s.decodeBody(i,o,r))throw Error("Error in lzma data stream");return o},e.decompressFile=function(t,i){t instanceof ArrayBuffer&&(t=new e.iStream(t)),!i&&e.oStream&&(i=new e.oStream);var o=new e.Decoder,r=o.decodeHeader(t),s=r.uncompressedSize;if(o.setProperties(r),!o.decodeBody(t,i,s))throw Error("Error in lzma data stream");return i},e.decode=e.decompressFile}(LZMA);
-
-
-
-
+onmessage = (event) => {
+	"use strict";
+	
+	const data = event.data;
+	switch (data.name) {
+		
+		case "loadstart": {
+			try {
+				AccentJiten.load().then(
+					() => {
+						postMessage({name: "loadsuccess"});
+					},
+					(error) => {
+						console.log(error);
+						postMessage({name: "loaderror"});
+					}
+				);
+			} catch (error) {
+				console.log(error);
+				postMessage({name: "loaderror"});
+			}
+			break;
+		}
+		
+		case "searchstart": {
+			const query = data.query;
+			const searchID = data.searchID;
+			const results = AccentJiten.resetSearchCoroutine(query, searchID);
+			postMessage({name: "searchresults", results: results});
+			break;
+		}
+		
+		case "searchcontinue": {
+			const results = AccentJiten.continueSearchCoroutine();
+			postMessage({name: "searchresults", results: results});
+			break;
+		}
+		
+	}
+};
 
 var AccentJiten = (() => {
 	"use strict";
 	
 	class AJ {
 		
-		loadFromLZMA(arrayBuffer, uncompressedSize) {
-			const inUint8Array = new Uint8Array(arrayBuffer);
-			let inOffset = 0;
-			const inStream = { readByte: () => inUint8Array[inOffset++] };
+		async load() {
+			if (this.initialized) throw new Error();
 			
-			const outArrayBuffer = new ArrayBuffer(uncompressedSize);
-			const outUint8Array = new Uint8Array(outArrayBuffer);
-			let outOffset = 0;
-			const outStream = { writeByte: (byte) => { outUint8Array[outOffset++] = byte; } };
+			const fileInfo = {
+				url: "accentjiten.dat.lzma",
+				version: "67",
+				uncompressedSize: 16548946
+			};
 			
-			LZMA.decompressFile(inStream, outStream);
+			const arrayBuffer = await (async function() {
+				
+				const lzmaArrayBuffer = await (async function() {
+					const response = await fetch(fileInfo.url);
+					if (!response) throw new Error();
+					const ret = await response.arrayBuffer();
+					if (!ret) throw new Error();
+					return ret;
+				})();
+				
+				const ret = new ArrayBuffer(fileInfo.uncompressedSize);
+				
+				const inUint8Array = new Uint8Array(lzmaArrayBuffer);
+				const outUint8Array = new Uint8Array(ret);
+				let inOffset = 0;
+				let outOffset = 0;
+				const inStream = { readByte: () => inUint8Array[inOffset++] };
+				const outStream = { writeByte: (byte) => { outUint8Array[outOffset++] = byte; } };
+				LZMA.decompressFile(inStream, outStream);
+				
+				return ret;
+				
+			})();
 			
-			const data = new DataView(outArrayBuffer);
-			
+			this.data = new DataView(arrayBuffer);
+			this.initialize();
+			this.initialized = true;
+		}
+		
+		initialize() {
+			const data = this.data;
 			const entryArrayLength = AJD.entryArray_getLength(data);
 			const syllableFormPoolOffset = 3 + (entryArrayLength * 3 * 3);
 			
@@ -123,21 +147,178 @@ var AccentJiten = (() => {
 				syllablePool[i] = syllable;
 			}
 			
-			this.data = data;
 			this.syllableFormPool = syllableFormPool;
 			this.syllablePool = syllablePool;
-			this.exactMatchedEntryOffsetsBuf = new ArrayBuffer(AJD.entryArray_getLength(data) * 4);
-			this.exactMatchedEntryOffsetsArr = new Uint32Array(this.exactMatchedEntryOffsetsBuf);
-			this.nonExactMatchedEntryOffsetsBuf = new ArrayBuffer(AJD.entryArray_getLength(data) * 4);
-			this.nonExactMatchedEntryOffsetsArr = new Uint32Array(this.nonExactMatchedEntryOffsetsBuf);
+			this.exactMatchesArr = new Uint32Array(entryArrayLength);
+			this.nonExactMatchesArr = new Uint32Array(entryArrayLength);
 		}
 		
-		search(query) {
-			AJS.search(this, query);
+		resetSearchCoroutine(query, searchID) {
+			const data = this.data;
+			this.query = query;
+			this.searchID = searchID;
+			this.syllableTrie = AJS.createSyllableTrie(this.syllableFormPool, query);
+			this.searchIndex = 0;
+			this.searching = true;
+			this.exactMatchIndex = 0;
+			this.nonExactMatchIndex = 0;
+			this.nExactMatches = 0;
+			this.nNonExactMatches = 0;
+			return { searchID: searchID };
 		}
 		
-		searchResultsToHTML() {
-			return AJHTML.searchResultsToHTML(this);
+		continueSearchCoroutine() {
+			if (this.searching) {
+				const data = this.data;
+				const syllablePool = this.syllablePool;
+				const query = this.query;
+				const syllableTrie = this.syllableTrie;
+				const exactMatchesArr = this.exactMatchesArr;
+				const nonExactMatchesArr = this.nonExactMatchesArr;
+				let nExactMatches = this.nExactMatches;
+				let nNonExactMatches = this.nNonExactMatches;
+				const entryArrayLength = AJD.entryArray_getLength(data);
+				const nMaxIter = 1000;
+				
+				const fromIndex = this.searchIndex;
+				const toIndex = Math.min(fromIndex + nMaxIter, entryArrayLength);
+				let i = fromIndex;
+				for ( ; i < toIndex; i++) {
+					const entryOffset = AJD.entryArray_getEntry_entryOffset(data, i);
+					const match1 = AJS.matchWordVariants(data, entryOffset, query);
+					if (match1 === AJS.EXACT_MATCH) {
+						exactMatchesArr[nExactMatches++] = entryOffset;
+					} else {
+						const match2 = AJS.matchSyllables(data, syllablePool, entryOffset, syllableTrie);
+						switch (match2) {
+							case AJS.NO_MATCH:
+								if (match1 === AJS.NON_EXACT_MATCH) {
+									nonExactMatchesArr[nNonExactMatches++] = entryOffset;
+								}
+								break;
+							case AJS.NON_EXACT_MATCH:
+								nonExactMatchesArr[nNonExactMatches++] = entryOffset;
+								break;
+							case AJS.EXACT_MATCH:
+								exactMatchesArr[nExactMatches++] = entryOffset;
+								break;
+						}
+					}
+				}
+				this.searchIndex = i;
+				this.nExactMatches = nExactMatches;
+				this.nNonExactMatches = nNonExactMatches;
+				
+				if (i === entryArrayLength) {
+					this.searching = false;
+				}
+				return { searchID: this.searchID };
+			} else {
+				const data = this.data;
+				const syllablePool = this.syllablePool;
+				const exactMatchesArr = this.exactMatchesArr;
+				const nonExactMatchesArr = this.nonExactMatchesArr;
+				const nExactMatches = this.nExactMatches;
+				const nNonExactMatches = this.nNonExactMatches;
+				const nMaxResults = 20;
+				const results = [];
+				let exactMatchIndex = this.exactMatchIndex;
+				let nonExactMatchIndex = this.nonExactMatchIndex;
+				
+				{
+					const toIndex = Math.min(exactMatchIndex + nMaxResults - results.length, nExactMatches);
+					for ( ; exactMatchIndex < toIndex; exactMatchIndex++) {
+						const entryOffset = exactMatchesArr[exactMatchIndex];
+						results.push(AJ.entry_toObject(data, syllablePool, entryOffset));
+					}
+					this.exactMatchIndex = exactMatchIndex;
+				}
+				
+				{
+					const toIndex = Math.min(nonExactMatchIndex + nMaxResults - results.length, nNonExactMatches);
+					for ( ; nonExactMatchIndex < toIndex; nonExactMatchIndex++) {
+						const entryOffset = nonExactMatchesArr[nonExactMatchIndex];
+						results.push(AJ.entry_toObject(data, syllablePool, entryOffset));
+					}
+					this.nonExactMatchIndex = nonExactMatchIndex;
+				}
+				
+				return {
+					searchID: this.searchID,
+					end: exactMatchIndex === nExactMatches && nonExactMatchIndex === nNonExactMatches,
+					nResults: nExactMatches + nNonExactMatches,
+					entries: results
+				};
+			}
+		}
+		
+		static entry_toObject(data, syllablePool, entryOffset) {
+			const stringArrayOffset = AJD.entry_getWordVariants_stringArrayOffset(data, entryOffset);
+			const stringOffset = AJD.stringArray_getString_stringOffset(data, stringArrayOffset, 0);
+			const word = AJD.string_get(data, stringOffset);
+			const pronunciationArrayOffset = AJD.entry_getPronunciations_pronunciationArrayOffset(data, entryOffset);
+			const pronunciations = AJ.pronunciationArray_toObject(data, syllablePool, pronunciationArrayOffset);
+			return { word: word, pronunciations: pronunciations };
+		}
+		
+		static pronunciationArray_toObject(data, syllablePool, pronunciationArrayOffset) {
+			const pronunciationArrayLength = AJD.pronunciationArray_getLength(data, pronunciationArrayOffset);
+			const array = new Array(pronunciationArrayLength);
+			for (let i = 0; i < pronunciationArrayLength; i++) {
+				const pronunciationOffset =
+					AJD.pronunciationArray_getPronunciation_pronunciationOffset(data, pronunciationArrayOffset, i);
+				const pronunciation = AJ.pronunciation_toObject(data, syllablePool, pronunciationOffset);
+				array[i] = pronunciation;
+			}
+			return array;
+		}
+		
+		static pronunciation_toObject(data, syllablePool, pronunciationOffset) {
+			const syllableArrayOffset = AJD.pronunciation_getReading_syllableArrayOffset(data, pronunciationOffset);
+			const syllableArray = AJ.syllableArray_toObject(data, syllablePool, syllableArrayOffset);
+			const stringOffset = AJD.pronunciation_getAccent_stringOffset(data, pronunciationOffset);
+			const accent = AJD.string_get(data, stringOffset);
+			const sourceArrayOffset = AJD.pronunciation_getSources_sourceArrayOffset(data, pronunciationOffset);
+			const sourceArray = AJ.sourceArray_toObject(data, sourceArrayOffset);
+			return {
+				accent: accent,
+				kana: syllableArray.map(x => x.value).join(""),
+				tokenizedKana: syllableArray,
+				sources: sourceArray
+			};
+		}
+		
+		static syllableArray_toObject(data, syllablePool, syllableArrayOffset) {
+			const syllableArrayLength = AJD.syllableArray_getLength(data, syllableArrayOffset);
+			const array = [];
+			for (let i = 0; i < syllableArrayLength; i++) {
+				const syllablePoolIndex =
+					AJD.syllableArray_getSyllable_syllablePoolIndex(data, syllableArrayOffset, i);
+				const syllable = syllablePool[syllablePoolIndex];
+				const syllableForm = syllable.form;
+				const moras = !syllable.hiraganaOrKatakana ? syllableForm.hiraganaMoras : syllableForm.katakanaMoras;
+				const isPunctuation = syllableForm.isPunctuation;
+				for (const mora of moras) {
+					array.push({type: isPunctuation ? "yakumono" : "mora", value: mora});
+				}
+			}
+			return array;
+		}
+		
+		static sourceArray_toObject(data, sourceArrayOffset) {
+			const sourceArrayLength = AJD.sourceArray_getLength(data, sourceArrayOffset);
+			const array = new Array(sourceArrayLength);
+			for (let i = 0; i < sourceArrayLength; i++) {
+				const source = AJD.sourceArray_getSource(data, sourceArrayOffset, i);
+				switch (source) {
+					case 0: array[i] = "Wadoku"; break;
+					case 1: array[i] = "OJAD"; break;
+					case 2: array[i] = "NHK"; break;
+					case 3: array[i] = "Kanjium"; break;
+					case 4: array[i] = "Kishimoto Tsuneyo"; break;
+				}
+			}
+			return array;
 		}
 		
 	}
@@ -149,26 +330,19 @@ var AccentJiten = (() => {
 		static NON_EXACT_MATCH = 2;
 		
 		static search(aj, query) {
-			const maxQueryLength = 50;
-			
-			if (query.length === 0 || query.length > maxQueryLength) {
-				if (query.length > maxQueryLength) {
-					aj.query = query.substring(0, maxQueryLength) + "...";
-				} else {
-					aj.query = query;
-				}
-				aj.exactMatchedEntryOffsetsN = 0;
-				aj.nonExactMatchedEntryOffsetsN = 0;
+			if (query.length === 0) {
+				aj.nExactMatches = 0;
+				aj.nNonExactMatches = 0;
 				return;
 			}
 			
 			const data = aj.data;
 			const syllableFormPool = aj.syllableFormPool;
 			const syllablePool = aj.syllablePool;
-			const exactMatchedEntryOffsetsArr = aj.exactMatchedEntryOffsetsArr;
-			const nonExactMatchedEntryOffsetsArr = aj.nonExactMatchedEntryOffsetsArr;
-			let exactMatchedEntryOffsetsN = 0;
-			let nonExactMatchedEntryOffsetsN = 0;
+			const exactMatchesArr = aj.exactMatchesArr;
+			const nonExactMatchesArr = aj.nonExactMatchesArr;
+			let nExactMatches = 0;
+			let nNonExactMatches = 0;
 			
 			const syllableTrie = AJS.createSyllableTrie(syllableFormPool, query);
 			const entryArrayLength = AJD.entryArray_getLength(data);
@@ -176,28 +350,28 @@ var AccentJiten = (() => {
 				const entryOffset = AJD.entryArray_getEntry_entryOffset(data, i);
 				const match1 = AJS.matchWordVariants(data, entryOffset, query);
 				if (match1 === AJS.EXACT_MATCH) {
-					exactMatchedEntryOffsetsArr[exactMatchedEntryOffsetsN++] = entryOffset;
+					exactMatchesArr[nExactMatches++] = entryOffset;
 				} else {
 					const match2 = AJS.matchSyllables(data, syllablePool, entryOffset, syllableTrie);
 					switch (match2) {
 						case AJS.NO_MATCH:
 							if (match1 === AJS.NON_EXACT_MATCH) {
-								nonExactMatchedEntryOffsetsArr[nonExactMatchedEntryOffsetsN++] = entryOffset;
+								nonExactMatchesArr[nNonExactMatches++] = entryOffset;
 							}
 							break;
 						case AJS.NON_EXACT_MATCH:
-							nonExactMatchedEntryOffsetsArr[nonExactMatchedEntryOffsetsN++] = entryOffset;
+							nonExactMatchesArr[nNonExactMatches++] = entryOffset;
 							break;
 						case AJS.EXACT_MATCH:
-							exactMatchedEntryOffsetsArr[exactMatchedEntryOffsetsN++] = entryOffset;
+							exactMatchesArr[nExactMatches++] = entryOffset;
 							break;
 					}
 				}
 			}
 			
 			aj.query = query;
-			aj.exactMatchedEntryOffsetsN = exactMatchedEntryOffsetsN;
-			aj.nonExactMatchedEntryOffsetsN = nonExactMatchedEntryOffsetsN;
+			aj.nExactMatches = nExactMatches;
+			aj.nNonExactMatches = nNonExactMatches;
 		}
 		
 		static matchWordVariants(data, entryOffset, query) {
@@ -338,143 +512,6 @@ var AccentJiten = (() => {
 	
 	}
 	
-	class AJHTML {
-		
-		static searchResultsToHTML(aj) {
-			const data = aj.data;
-			const syllablePool = aj.syllablePool;
-			const query = aj.query;
-			const exactMatchedEntryOffsetsArr = aj.exactMatchedEntryOffsetsArr;
-			const nonExactMatchedEntryOffsetsArr = aj.nonExactMatchedEntryOffsetsArr;
-			const exactMatchedEntryOffsetsN = aj.exactMatchedEntryOffsetsN;
-			const nonExactMatchedEntryOffsetsN = aj.nonExactMatchedEntryOffsetsN;
-			const maxResults = 500;
-			
-			let html = "";
-			let nEntries = 0;
-			const nResults = exactMatchedEntryOffsetsN + nonExactMatchedEntryOffsetsN;
-			
-			for (let i = 0; i < exactMatchedEntryOffsetsN; i++) {
-				if (nEntries >= maxResults) break;
-				const entryOffset = exactMatchedEntryOffsetsArr[i];
-				html += AJHTML.entryToHTML(data, syllablePool, entryOffset);
-				html += "<hr>";
-				nEntries++;
-			}
-			
-			for (let i = 0; i < nonExactMatchedEntryOffsetsN; i++) {
-				if (nEntries >= maxResults) break;
-				const entryOffset = nonExactMatchedEntryOffsetsArr[i];
-				html += AJHTML.entryToHTML(data, syllablePool, entryOffset);
-				html += "<hr>";
-				nEntries++;
-			}
-			
-			let labelHTML;
-			if (nResults > maxResults) {
-				labelHTML = "全" + nResults + "件中1～" + maxResults + "件を表示中 - \"<b>"
-					+ AJHTML.escapeHTML(query) + "</b>\"";
-			} else if (nResults === 0) {
-				if (query) {
-					labelHTML = "何も見つかりませんでした - \"<b>" + AJHTML.escapeHTML(query) + "</b>\"";
-				} else {
-					labelHTML = "";
-				}
-			} else {
-				labelHTML = nResults + "件 - \"<b>" + AJHTML.escapeHTML(query) + "</b>\"";
-			}
-			
-			return { html1: labelHTML, html2: html };
-		}
-			
-		static entryToHTML(data, syllablePool, entryOffset) {
-			let html = "";
-			const stringArrayOffset = AJD.entry_getWordVariants_stringArrayOffset(data, entryOffset);
-			const stringOffset = AJD.stringArray_getString_stringOffset(data, stringArrayOffset, 0);
-			const wordVariant = AJD.string_get(data, stringOffset);
-			html += "「";
-			html += AJHTML.escapeHTML(wordVariant);
-			html += "」";
-			const pronunciationArrayOffset = AJD.entry_getPronunciations_pronunciationArrayOffset(data, entryOffset);
-			const pronunciationArrayLength = AJD.pronunciationArray_getLength(data, pronunciationArrayOffset);
-			for (let i = 0; i < pronunciationArrayLength; i++) {
-				const pronunciationOffset =
-					AJD.pronunciationArray_getPronunciation_pronunciationOffset(data, pronunciationArrayOffset, i);
-				const syllableArrayOffset =
-					AJD.pronunciation_getReading_syllableArrayOffset(data, pronunciationOffset);
-				const accentStringOffset = AJD.pronunciation_getAccent_stringOffset(data, pronunciationOffset);
-				const sourceArrayOffset = AJD.pronunciation_getSources_sourceArrayOffset(data, pronunciationOffset);
-				
-				const syllableArrayLength = AJD.syllableArray_getLength(data, syllableArrayOffset);
-				html += "<div class=\"tonetext\">";
-				let iMora = 0;
-				const nMora = AJD.string_getLength(data, accentStringOffset) - 2;
-				for (let j = 0; j < syllableArrayLength; j++) {
-					const syllablePoolIndex =
-						AJD.syllableArray_getSyllable_syllablePoolIndex(data, syllableArrayOffset, j);
-					const syllable = syllablePool[syllablePoolIndex];
-					const syllableForm = syllable.form;
-					const isPunctuation = syllableForm.isPunctuation;
-					const moras = syllable.hiraganaOrKatakana === 0
-						? syllableForm.hiraganaMoras : syllableForm.katakanaMoras;
-					for (const mora of moras) {
-						const moraIsHigh = AJD.string_getCharCode(data, accentStringOffset,
-							iMora >= nMora ? nMora - 1 : iMora) === "H".charCodeAt(0);
-						if (moraIsHigh) {
-							html += "<span class=\"hightone\">";
-						} else if (isPunctuation && iMora === 0) {
-							html += "<span class=\"lowtone\">";
-						} else {
-							const nextMoraChar = iMora + 1 === nMora
-								? AJD.string_getCharCode(data, accentStringOffset, iMora + 2)
-								: AJD.string_getCharCode(data, accentStringOffset, iMora + 1);
-							const prevMoraChar = iMora < 1 ? null
-								: AJD.string_getCharCode(data, accentStringOffset, iMora - 1);
-							const nextMoraIsHigh = nextMoraChar === "H".charCodeAt(0);
-							const prevMoraIsHigh = prevMoraChar === "H".charCodeAt(0);
-							if (nextMoraIsHigh && prevMoraIsHigh) {
-								html += "<span class=\"lowtonenextandprevioushigh\">";
-							} else if (nextMoraIsHigh) {
-								html += "<span class=\"lowtonenexthigh\">";
-							} else if (prevMoraIsHigh) {
-								html += "<span class=\"lowtoneprevioushigh\">";
-							} else {
-								html += "<span class=\"lowtone\">";
-							}
-						}
-						html += AJHTML.escapeHTML(mora);
-						html += "</span>";
-						if (!isPunctuation) {
-							iMora++;
-						}
-					}
-				}
-				if (AJD.string_getCharCode(data, accentStringOffset, iMora - 1) === "H".charCodeAt(0)
-						&& AJD.string_getCharCode(data, accentStringOffset, iMora) === "-".charCodeAt(0)
-						&& AJD.string_getCharCode(data, accentStringOffset, iMora + 1) === "L".charCodeAt(0)) {
-					html += "<span class=\"lowtoneprevioushigh\"></span>";
-				}
-				html += "</div>";
-				
-				const sourceArrayLength = AJD.sourceArray_getLength(data, sourceArrayOffset);
-				html += "<span style=\"vertical-align:middle;\"><small style=\"color:#999999;\"><small>";
-				html += "&thinsp;×";
-				html += sourceArrayLength;
-				html += "</small></small></span>";
-				if (i !== pronunciationArrayLength - 1) {
-					html += "&emsp;";
-				}
-			}
-			return html;
-		}
-
-		static escapeHTML(str) {
-			return str.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
-				.replaceAll('"', "&quot;").replaceAll("'", "&#039;").replaceAll(" ", "&nbsp;");
-		}
-		
-	}
-	
 	class AJD {
 		
 		static getUint8At(dataView, pos) {
@@ -586,13 +623,11 @@ var AccentJiten = (() => {
 	}
 	
 	const aj = new AJ();
-	const ret = {
-		loadFromLZMA: (arrayBuffer, uncompressedSize) => { aj.loadFromLZMA(arrayBuffer, uncompressedSize); },
-		search: (query) => { aj.search(query); },
-		searchResultsToHTML: () => { return aj.searchResultsToHTML(); }
+	return {
+		load: async function() { await aj.load(); },
+		resetSearchCoroutine: function(query, searchID) { return aj.resetSearchCoroutine(query, searchID); },
+		continueSearchCoroutine: function() { return aj.continueSearchCoroutine(); }
 	};
-	Object.freeze(ret);
-	return ret;
 	
 })();
 
@@ -600,35 +635,35 @@ var AccentJiten = (() => {
 
 
 
-function handleMessage(event) {
-	"use strict";
-	
-	const data = event.data;
-	switch (data.name) {
-		
-		case "load": {
-			let error = null;
-			try {
-				AccentJiten.loadFromLZMA(data.arrayBuffer, data.uncompressedSize);
-			} catch (e) {
-				error = e;
-			}
-			if (!error) {
-				postMessage({name: "loadsuccess"});
-			} else {
-				console.log(error);
-				postMessage({name: "loaderror"});
-			}
-			break;
-		}
-		
-		case "search": {
-			AccentJiten.search(data.query);
-			const html = AccentJiten.searchResultsToHTML();
-			postMessage({name: "searchsuccess", html1: html.html1, html2: html.html2});
-			break;
-		}
-		
-	}
-	
-}
+/*
+
+https://github.com/jcmellado/js-lzma
+
+Copyright (c) 2011 Juan Mellado
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+References:
+- "LZMA SDK" by Igor Pavlov
+  http://www.7-zip.org/sdk.html
+- "The .lzma File Format" from xz documentation
+  https://github.com/joachimmetz/xz/blob/master/doc/lzma-file-format.txt
+
+*/
+var LZMA=LZMA||{};!function(e){"use strict";e.OutWindow=function(){this._windowSize=0},e.OutWindow.prototype.create=function(e){this._buffer&&this._windowSize===e||(this._buffer=new Uint8Array(e)),this._windowSize=e,this._pos=0,this._streamPos=0},e.OutWindow.prototype.flush=function(){var e=this._pos-this._streamPos;if(0!==e){if(this._stream.writeBytes)this._stream.writeBytes(this._buffer,e);else for(var t=0;t<e;t++)this._stream.writeByte(this._buffer[t]);this._pos>=this._windowSize&&(this._pos=0),this._streamPos=this._pos}},e.OutWindow.prototype.releaseStream=function(){this.flush(),this._stream=null},e.OutWindow.prototype.setStream=function(e){this.releaseStream(),this._stream=e},e.OutWindow.prototype.init=function(e){e||(this._streamPos=0,this._pos=0)},e.OutWindow.prototype.copyBlock=function(e,t){var i=this._pos-e-1;for(i<0&&(i+=this._windowSize);t--;)i>=this._windowSize&&(i=0),this._buffer[this._pos++]=this._buffer[i++],this._pos>=this._windowSize&&this.flush()},e.OutWindow.prototype.putByte=function(e){this._buffer[this._pos++]=e,this._pos>=this._windowSize&&this.flush()},e.OutWindow.prototype.getByte=function(e){var t=this._pos-e-1;return t<0&&(t+=this._windowSize),this._buffer[t]},e.RangeDecoder=function(){},e.RangeDecoder.prototype.setStream=function(e){this._stream=e},e.RangeDecoder.prototype.releaseStream=function(){this._stream=null},e.RangeDecoder.prototype.init=function(){var e=5;for(this._code=0,this._range=-1;e--;)this._code=this._code<<8|this._stream.readByte()},e.RangeDecoder.prototype.decodeDirectBits=function(e){for(var t,i=0,o=e;o--;)this._range>>>=1,t=this._code-this._range>>>31,this._code-=this._range&t-1,i=i<<1|1-t,(4278190080&this._range)==0&&(this._code=this._code<<8|this._stream.readByte(),this._range<<=8);return i},e.RangeDecoder.prototype.decodeBit=function(e,t){var i=e[t],o=(this._range>>>11)*i;return(2147483648^this._code)<(2147483648^o)?(this._range=o,e[t]+=2048-i>>>5,(4278190080&this._range)==0&&(this._code=this._code<<8|this._stream.readByte(),this._range<<=8),0):(this._range-=o,this._code-=o,e[t]-=i>>>5,(4278190080&this._range)==0&&(this._code=this._code<<8|this._stream.readByte(),this._range<<=8),1)},e.initBitModels=function(e,t){for(;t--;)e[t]=1024},e.BitTreeDecoder=function(e){this._models=[],this._numBitLevels=e},e.BitTreeDecoder.prototype.init=function(){e.initBitModels(this._models,1<<this._numBitLevels)},e.BitTreeDecoder.prototype.decode=function(e){for(var t=1,i=this._numBitLevels;i--;)t=t<<1|e.decodeBit(this._models,t);return t-(1<<this._numBitLevels)},e.BitTreeDecoder.prototype.reverseDecode=function(e){for(var t,i=1,o=0,r=0;r<this._numBitLevels;++r)t=e.decodeBit(this._models,i),i=i<<1|t,o|=t<<r;return o},e.reverseDecode2=function(e,t,i,o){for(var r,s=1,d=0,n=0;n<o;++n)r=i.decodeBit(e,t+s),s=s<<1|r,d|=r<<n;return d},e.LenDecoder=function(){this._choice=[],this._lowCoder=[],this._midCoder=[],this._highCoder=new e.BitTreeDecoder(8),this._numPosStates=0},e.LenDecoder.prototype.create=function(t){for(;this._numPosStates<t;++this._numPosStates)this._lowCoder[this._numPosStates]=new e.BitTreeDecoder(3),this._midCoder[this._numPosStates]=new e.BitTreeDecoder(3)},e.LenDecoder.prototype.init=function(){var t=this._numPosStates;for(e.initBitModels(this._choice,2);t--;)this._lowCoder[t].init(),this._midCoder[t].init();this._highCoder.init()},e.LenDecoder.prototype.decode=function(e,t){return 0===e.decodeBit(this._choice,0)?this._lowCoder[t].decode(e):0===e.decodeBit(this._choice,1)?8+this._midCoder[t].decode(e):16+this._highCoder.decode(e)},e.Decoder2=function(){this._decoders=[]},e.Decoder2.prototype.init=function(){e.initBitModels(this._decoders,768)},e.Decoder2.prototype.decodeNormal=function(e){var t=1;do t=t<<1|e.decodeBit(this._decoders,t);while(t<256);return 255&t},e.Decoder2.prototype.decodeWithMatchByte=function(e,t){var i,o,r=1;do if(i=t>>7&1,t<<=1,o=e.decodeBit(this._decoders,(1+i<<8)+r),r=r<<1|o,i!==o){for(;r<256;)r=r<<1|e.decodeBit(this._decoders,r);break}while(r<256);return 255&r},e.LiteralDecoder=function(){},e.LiteralDecoder.prototype.create=function(t,i){var o;if(!this._coders||this._numPrevBits!==i||this._numPosBits!==t)for(this._numPosBits=t,this._posMask=(1<<t)-1,this._numPrevBits=i,this._coders=[],o=1<<this._numPrevBits+this._numPosBits;o--;)this._coders[o]=new e.Decoder2},e.LiteralDecoder.prototype.init=function(){for(var e=1<<this._numPrevBits+this._numPosBits;e--;)this._coders[e].init()},e.LiteralDecoder.prototype.getDecoder=function(e,t){return this._coders[((e&this._posMask)<<this._numPrevBits)+((255&t)>>>8-this._numPrevBits)]},e.Decoder=function(){this._outWindow=new e.OutWindow,this._rangeDecoder=new e.RangeDecoder,this._isMatchDecoders=[],this._isRepDecoders=[],this._isRepG0Decoders=[],this._isRepG1Decoders=[],this._isRepG2Decoders=[],this._isRep0LongDecoders=[],this._posSlotDecoder=[],this._posDecoders=[],this._posAlignDecoder=new e.BitTreeDecoder(4),this._lenDecoder=new e.LenDecoder,this._repLenDecoder=new e.LenDecoder,this._literalDecoder=new e.LiteralDecoder,this._dictionarySize=-1,this._dictionarySizeCheck=-1,this._posSlotDecoder[0]=new e.BitTreeDecoder(6),this._posSlotDecoder[1]=new e.BitTreeDecoder(6),this._posSlotDecoder[2]=new e.BitTreeDecoder(6),this._posSlotDecoder[3]=new e.BitTreeDecoder(6)},e.Decoder.prototype.setDictionarySize=function(e){return!(e<0)&&(this._dictionarySize!==e&&(this._dictionarySize=e,this._dictionarySizeCheck=Math.max(this._dictionarySize,1),this._outWindow.create(Math.max(this._dictionarySizeCheck,4096))),!0)},e.Decoder.prototype.setLcLpPb=function(e,t,i){var o=1<<i;return!(e>8)&&!(t>4)&&!(i>4)&&(this._literalDecoder.create(t,e),this._lenDecoder.create(o),this._repLenDecoder.create(o),this._posStateMask=o-1,!0)},e.Decoder.prototype.setProperties=function(e){if(!this.setLcLpPb(e.lc,e.lp,e.pb))throw Error("Incorrect stream properties");if(!this.setDictionarySize(e.dictionarySize))throw Error("Invalid dictionary size")},e.Decoder.prototype.decodeHeader=function(e){var t,i,o,r,s,d;return!(e.size<13)&&(i=(t=e.readByte())%9,o=(t=~~(t/9))%5,r=~~(t/5),d=e.readByte(),d|=e.readByte()<<8,d|=e.readByte()<<16,d+=16777216*e.readByte(),s=e.readByte(),s|=e.readByte()<<8,s|=e.readByte()<<16,s+=16777216*e.readByte(),e.readByte(),e.readByte(),e.readByte(),e.readByte(),{lc:i,lp:o,pb:r,dictionarySize:d,uncompressedSize:s})},e.Decoder.prototype.init=function(){var t=4;for(this._outWindow.init(!1),e.initBitModels(this._isMatchDecoders,192),e.initBitModels(this._isRep0LongDecoders,192),e.initBitModels(this._isRepDecoders,12),e.initBitModels(this._isRepG0Decoders,12),e.initBitModels(this._isRepG1Decoders,12),e.initBitModels(this._isRepG2Decoders,12),e.initBitModels(this._posDecoders,114),this._literalDecoder.init();t--;)this._posSlotDecoder[t].init();this._lenDecoder.init(),this._repLenDecoder.init(),this._posAlignDecoder.init(),this._rangeDecoder.init()},e.Decoder.prototype.decodeBody=function(t,i,o){var r,s,d,n,c,h,a=0,p=0,u=0,D=0,$=0,f=0,B=0;for(this._rangeDecoder.setStream(t),this._outWindow.setStream(i),this.init();o<0||f<o;)if(r=f&this._posStateMask,0===this._rangeDecoder.decodeBit(this._isMatchDecoders,(a<<4)+r))s=this._literalDecoder.getDecoder(f++,B),B=a>=7?s.decodeWithMatchByte(this._rangeDecoder,this._outWindow.getByte(p)):s.decodeNormal(this._rangeDecoder),this._outWindow.putByte(B),a=a<4?0:a-(a<10?3:6);else{if(1===this._rangeDecoder.decodeBit(this._isRepDecoders,a))d=0,0===this._rangeDecoder.decodeBit(this._isRepG0Decoders,a)?0===this._rangeDecoder.decodeBit(this._isRep0LongDecoders,(a<<4)+r)&&(a=a<7?9:11,d=1):(0===this._rangeDecoder.decodeBit(this._isRepG1Decoders,a)?n=u:(0===this._rangeDecoder.decodeBit(this._isRepG2Decoders,a)?n=D:(n=$,$=D),D=u),u=p,p=n),0===d&&(d=2+this._repLenDecoder.decode(this._rangeDecoder,r),a=a<7?8:11);else if($=D,D=u,u=p,d=2+this._lenDecoder.decode(this._rangeDecoder,r),a=a<7?7:10,(c=this._posSlotDecoder[d<=5?d-2:3].decode(this._rangeDecoder))>=4){if(h=(c>>1)-1,p=(2|1&c)<<h,c<14)p+=e.reverseDecode2(this._posDecoders,p-c-1,this._rangeDecoder,h);else if(p+=this._rangeDecoder.decodeDirectBits(h-4)<<4,(p+=this._posAlignDecoder.reverseDecode(this._rangeDecoder))<0){if(-1===p)break;return!1}}else p=c;if(p>=f||p>=this._dictionarySizeCheck)return!1;this._outWindow.copyBlock(p,d),f+=d,B=this._outWindow.getByte(0)}return this._outWindow.flush(),this._outWindow.releaseStream(),this._rangeDecoder.releaseStream(),!0},e.Decoder.prototype.setDecoderProperties=function(e){var t,i,o,r,s;return!(e.size<5)&&(i=(t=e.readByte())%9,o=(t=~~(t/9))%5,r=~~(t/5),!!this.setLcLpPb(i,o,r)&&(s=e.readByte(),s|=e.readByte()<<8,s|=e.readByte()<<16,s+=16777216*e.readByte(),this.setDictionarySize(s)))},e.decompress=function(t,i,o,r){var s=new e.Decoder;if(!s.setDecoderProperties(t))throw Error("Incorrect lzma stream properties");if(!s.decodeBody(i,o,r))throw Error("Error in lzma data stream");return o},e.decompressFile=function(t,i){t instanceof ArrayBuffer&&(t=new e.iStream(t)),!i&&e.oStream&&(i=new e.oStream);var o=new e.Decoder,r=o.decodeHeader(t),s=r.uncompressedSize;if(o.setProperties(r),!o.decodeBody(t,i,s))throw Error("Error in lzma data stream");return i},e.decode=e.decompressFile}(LZMA);
