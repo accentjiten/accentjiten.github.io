@@ -24,8 +24,8 @@ async function init() {
 	loadingMsg.innerHTML = "Loading...";
 	document.body.appendChild(loadingMsg);
 	
-	let desc = document.createElement("p");
-	desc.innerHTML = "日本語アクセント辞典<br>使い方：入力で単語を検索する<br><br>" +
+	let introDesc = document.createElement("p");
+	introDesc.innerHTML = "日本語アクセント辞典<br>使い方：入力で単語を検索する<br><br>" +
 		"Real-time Japanese pitch accent dictionary<br>(How to use: search a word<br>Try typing \"konnichiwa\")";
 	
 	const searchResults = document.createElement("p");
@@ -58,7 +58,7 @@ async function init() {
 				document.body.removeChild(loadingMsg);
 				document.body.appendChild(title);
 				document.body.appendChild(input);
-				document.body.appendChild(desc);
+				document.body.appendChild(introDesc);
 				document.body.appendChild(searchResults);
 				input.addEventListener("input", (event) => {
 					const query = input.value;
@@ -95,18 +95,17 @@ async function init() {
 					if (end || (entries && entries.length > 0)) {
 						
 						if (nEntryElems === 0) {
-							if (desc) {
-								document.body.removeChild(desc);
-								desc = null;
+							if (introDesc) {
+								document.body.removeChild(introDesc);
+								introDesc = null;
 							}
 							if (searchResultsChild) {
 								searchResults.removeChild(searchResultsChild);
 							}
 							searchResultsChild = document.createElement("span");
-							searchResults.appendChild(searchResultsChild);
 							
 							if (searchQuery) {
-								const descElem = document.createElement("span");
+								const descElem = document.createElement("p");
 								const descElemChild1 = document.createElement("span");
 								if (nResults === 0) {
 									descElemChild1.textContent = "何も見つかりませんでした - \"";
@@ -123,94 +122,96 @@ async function init() {
 								descElem.appendChild(descElemChild2);
 								descElem.appendChild(descElemChild3);
 								searchResultsChild.appendChild(descElem);
-								searchResultsChild.appendChild(document.createElement("br"));
-								searchResultsChild.appendChild(document.createElement("br"));
 							}
+							
+							searchResults.appendChild(searchResultsChild);
 						}
 						
-						for (const entry of entries) {
-							const entryElem = document.createElement("span");
-							
-							const leftBrace = document.createElement("span");
-							const rightBrace = document.createElement("span");
-							leftBrace.textContent = "「";
-							rightBrace.textContent = "」";
-							const midashi = document.createElement("span");
-							midashi.textContent = entry.word;
-							entryElem.appendChild(leftBrace);
-							entryElem.appendChild(midashi);
-							entryElem.appendChild(rightBrace);
-							
-							let pronunciationI = 0;
-							for (const pronunciation of entry.pronunciations) {
-								const div = document.createElement("div");
-								div.className = "tonetext";
-								const accent = pronunciation.accent;
-								let i = 0;
-								const len = accent.length - 2;
-								for (const token of pronunciation.tokenizedKana) {
-									const tokenElem = document.createElement("span");
-									tokenElem.textContent = token.value;
-									const isMora = token.type === "mora";
-									const moraIsHigh = accent.charAt(Math.min(i, len - 1)) === "H";
-									if (moraIsHigh) {
-										tokenElem.className = "hightone";
-									} else if (!isMora && i === 0) {
-										tokenElem.className = "lowtone";
-									} else {
-										const nextMoraChar =
-											i + 1 === len ? accent.charAt(i + 2) : accent.charAt(i + 1);
-										const prevMoraChar = i < 1 ? null : accent.charAt(i - 1);
-										const nextMoraIsHigh = nextMoraChar === "H";
-										const prevMoraIsHigh = prevMoraChar === "H";
-										if (nextMoraIsHigh && prevMoraIsHigh) {
-											tokenElem.className = "lowtonenextandprevioushigh";
-										} else if (nextMoraIsHigh) {
-											tokenElem.className = "lowtonenexthigh";
-										} else if (prevMoraIsHigh) {
-											tokenElem.className = "lowtoneprevioushigh";
-										} else {
+						if (entries) {
+							for (const entry of entries) {
+								const entryElem = document.createElement("span");
+								
+								const leftBrace = document.createElement("span");
+								const rightBrace = document.createElement("span");
+								leftBrace.textContent = "「";
+								rightBrace.textContent = "」";
+								const midashi = document.createElement("span");
+								midashi.textContent = entry.word;
+								entryElem.appendChild(leftBrace);
+								entryElem.appendChild(midashi);
+								entryElem.appendChild(rightBrace);
+								
+								let pronunciationI = 0;
+								for (const pronunciation of entry.pronunciations) {
+									const div = document.createElement("div");
+									div.className = "tonetext";
+									const accent = pronunciation.accent;
+									let i = 0;
+									const len = accent.length - 2;
+									for (const token of pronunciation.tokenizedKana) {
+										const tokenElem = document.createElement("span");
+										tokenElem.textContent = token.value;
+										const isMora = token.type === "mora";
+										const moraIsHigh = accent.charAt(Math.min(i, len - 1)) === "H";
+										if (moraIsHigh) {
+											tokenElem.className = "hightone";
+										} else if (!isMora && i === 0) {
 											tokenElem.className = "lowtone";
+										} else {
+											const nextMoraChar =
+												i + 1 === len ? accent.charAt(i + 2) : accent.charAt(i + 1);
+											const prevMoraChar = i < 1 ? null : accent.charAt(i - 1);
+											const nextMoraIsHigh = nextMoraChar === "H";
+											const prevMoraIsHigh = prevMoraChar === "H";
+											if (nextMoraIsHigh && prevMoraIsHigh) {
+												tokenElem.className = "lowtonenextandprevioushigh";
+											} else if (nextMoraIsHigh) {
+												tokenElem.className = "lowtonenexthigh";
+											} else if (prevMoraIsHigh) {
+												tokenElem.className = "lowtoneprevioushigh";
+											} else {
+												tokenElem.className = "lowtone";
+											}
+										}
+										div.appendChild(tokenElem);
+										if (isMora) {
+											i += 1;
 										}
 									}
-									div.appendChild(tokenElem);
-									if (isMora) {
-										i += 1;
+									
+									if (accent.endsWith("H-L")) {
+										const hlElem = document.createElement("span");
+										hlElem.className = "lowtoneprevioushigh";
+										div.appendChild(hlElem);
 									}
+									
+									entryElem.appendChild(div);
+									
+									const sourceElem = document.createElement("span");
+									sourceElem.setAttribute("style", "vertical-align:middle;");
+									const sourceElemChild1 = document.createElement("small");
+									sourceElemChild1.setAttribute("style", "color:#999999;");
+									const sourceElemChild2 = document.createElement("small");
+									sourceElemChild2.textContent = " ×" + pronunciation.sources.length;
+									sourceElemChild1.appendChild(sourceElemChild2);
+									sourceElem.appendChild(sourceElemChild1);
+									entryElem.appendChild(sourceElem);
+									
+									if (pronunciationI < entry.pronunciations.length - 1) {
+										const emSpace = document.createElement("span");
+										emSpace.textContent = " ";
+										entryElem.appendChild(emSpace);
+									}
+									pronunciationI += 1;
 								}
 								
-								if (accent.endsWith("H-L")) {
-									const hlElem = document.createElement("span");
-									hlElem.className = "lowtoneprevioushigh";
-									div.appendChild(hlElem);
+								searchResultsChild.appendChild(entryElem);
+								searchResultsChild.appendChild(document.createElement("hr"));
+								
+								nEntryElems += 1;
+								if (nEntryElems === nMaxEntryElems) {
+									break;
 								}
-								
-								entryElem.appendChild(div);
-								
-								const sourceElem = document.createElement("span");
-								sourceElem.setAttribute("style", "vertical-align:middle;");
-								const sourceElemChild1 = document.createElement("small");
-								sourceElemChild1.setAttribute("style", "color:#999999;");
-								const sourceElemChild2 = document.createElement("small");
-								sourceElemChild2.textContent = " ×" + pronunciation.sources.length;
-								sourceElemChild1.appendChild(sourceElemChild2);
-								sourceElem.appendChild(sourceElemChild1);
-								entryElem.appendChild(sourceElem);
-								
-								if (pronunciationI < entry.pronunciations.length - 1) {
-									const emSpace = document.createElement("span");
-									emSpace.textContent = " ";
-									entryElem.appendChild(emSpace);
-								}
-								pronunciationI += 1;
-							}
-							
-							searchResultsChild.appendChild(entryElem);
-							searchResultsChild.appendChild(document.createElement("hr"));
-							
-							nEntryElems += 1;
-							if (nEntryElems === nMaxEntryElems) {
-								break;
 							}
 						}
 					}
