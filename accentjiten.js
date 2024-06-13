@@ -191,7 +191,9 @@ async function init() {
 								sourceElem.setAttribute("style", "vertical-align:middle;");
 								const sourceElemChild1 = document.createElement("small");
 								sourceElemChild1.setAttribute("style", "color:#999999;");
-								sourceElemChild1.textContent = " ×" + pronunciation.sources.length;
+								const sourceElemChild2 = document.createElement("small");
+								sourceElemChild2.textContent = " ×" + pronunciation.sources.length;
+								sourceElemChild1.appendChild(sourceElemChild2);
 								sourceElem.appendChild(sourceElemChild1);
 								entryElem.appendChild(sourceElem);
 								
