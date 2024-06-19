@@ -49,7 +49,6 @@ async function init() {
 	const QUERY_MAX_LENGTH = 50;
 	const MAX_ENTRY_ELEMS = 500;
 	const H_CHARCODE = "H".charCodeAt(0);
-	const L_CHARCODE = "L".charCodeAt(0);
 	
 	function handleWorkerResponse(data) {
 		switch (data.name) {
