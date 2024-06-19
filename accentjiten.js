@@ -46,8 +46,10 @@ async function init() {
 	let searchID = 0;
 	let searchQuery;
 	let nEntryElems = 0;
-	const queryMaxLength = 50;
-	const nMaxEntryElems = 500;
+	const QUERY_MAX_LENGTH = 50;
+	const MAX_ENTRY_ELEMS = 500;
+	const H_CHARCODE = "H".charCodeAt(0);
+	const L_CHARCODE = "L".charCodeAt(0);
 	
 	function handleWorkerResponse(data) {
 		switch (data.name) {
@@ -68,8 +70,8 @@ async function init() {
 						searchQuery = null;
 						handleWorkerResponse(
 							{name: "searchresults", results: {searchID: searchID, end: true, nResults: 0}});
-					} else if (query.length > queryMaxLength) {
-						searchQuery = query.substring(0, queryMaxLength) + "...";
+					} else if (query.length > QUERY_MAX_LENGTH) {
+						searchQuery = query.substring(0, QUERY_MAX_LENGTH) + "...";
 						handleWorkerResponse(
 							{name: "searchresults", results: {searchID: searchID, end: true, nResults: 0}});
 					} else {
@@ -109,8 +111,8 @@ async function init() {
 								const descElemChild1 = document.createElement("span");
 								if (nResults === 0) {
 									descElemChild1.textContent = "何も見つかりませんでした - \"";
-								} else if (nResults > nMaxEntryElems) {
-									descElemChild1.textContent = nMaxEntryElems + "件を表示中 - \"";
+								} else if (nResults > MAX_ENTRY_ELEMS) {
+									descElemChild1.textContent = MAX_ENTRY_ELEMS + "件を表示中 - \"";
 								} else {
 									descElemChild1.textContent = nResults + "件 - \"";
 								}
@@ -146,43 +148,32 @@ async function init() {
 									const div = document.createElement("div");
 									div.className = "tonetext";
 									const accent = pronunciation.accent;
-									let i = 0;
-									const len = accent.length - 2;
-									for (const token of pronunciation.tokenizedKana) {
+									let accentI = 0;
+									const tokens = pronunciation.tokenizedKana;
+									for (let i = 0; i < tokens.length; i++) {
+										const token = tokens[i];
+										const nextToken = tokens[i + 1];
+										const tokenIsHigh = accent.charCodeAt(
+											accentI === accent.length - 2 ? accent.length - 1 : accentI)
+												=== H_CHARCODE;
+										const nextTokenIsHigh =
+											!nextToken ? accent.charCodeAt(accent.length - 1) === H_CHARCODE :
+												nextToken.type !== "mora" ? tokenIsHigh :
+													accent.charCodeAt(accentI === accent.length - 3
+														? accent.length - 1 :
+															token.type === "mora" ? accentI + 1 : accentI)
+																=== H_CHARCODE;
+										
 										const tokenElem = document.createElement("span");
 										tokenElem.textContent = token.value;
-										const isMora = token.type === "mora";
-										const moraIsHigh = accent.charAt(Math.min(i, len - 1)) === "H";
-										if (moraIsHigh) {
-											tokenElem.className = "hightone";
-										} else if (!isMora && i === 0) {
-											tokenElem.className = "lowtone";
-										} else {
-											const nextMoraChar =
-												i + 1 === len ? accent.charAt(i + 2) : accent.charAt(i + 1);
-											const prevMoraChar = i < 1 ? null : accent.charAt(i - 1);
-											const nextMoraIsHigh = nextMoraChar === "H";
-											const prevMoraIsHigh = prevMoraChar === "H";
-											if (nextMoraIsHigh && prevMoraIsHigh) {
-												tokenElem.className = "lowtonenextandprevioushigh";
-											} else if (nextMoraIsHigh) {
-												tokenElem.className = "lowtonenexthigh";
-											} else if (prevMoraIsHigh) {
-												tokenElem.className = "lowtoneprevioushigh";
-											} else {
-												tokenElem.className = "lowtone";
-											}
-										}
+										tokenElem.className = tokenIsHigh
+											? nextTokenIsHigh ? "hightone" : "hightonenextlow"
+											: nextTokenIsHigh ? "lowtonenexthigh" : "lowtone"
 										div.appendChild(tokenElem);
-										if (isMora) {
-											i += 1;
+										
+										if (token.type === "mora") {
+											accentI += 1;
 										}
-									}
-									
-									if (accent.endsWith("H-L")) {
-										const hlElem = document.createElement("span");
-										hlElem.className = "lowtoneprevioushigh";
-										div.appendChild(hlElem);
 									}
 									
 									entryElem.appendChild(div);
@@ -209,14 +200,14 @@ async function init() {
 								searchResultsChild.appendChild(document.createElement("hr"));
 								
 								nEntryElems += 1;
-								if (nEntryElems === nMaxEntryElems) {
+								if (nEntryElems === MAX_ENTRY_ELEMS) {
 									break;
 								}
 							}
 						}
 					}
 					
-					if (!end && nEntryElems !== nMaxEntryElems) {
+					if (!end && nEntryElems !== MAX_ENTRY_ELEMS) {
 						worker.postMessage({name: "searchcontinue"});
 					}
 				}
