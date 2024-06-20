@@ -157,7 +157,7 @@ var AccentJiten = (() => {
 			const data = this.data;
 			this.query = query;
 			this.searchID = searchID;
-			this.syllableTrie = AJS.createSyllableTrie(this.syllableFormPool, query);
+			this.syllableTrie = AJ.createSyllableTrie(this.syllableFormPool, query);
 			this.searchIndex = 0;
 			this.searching = true;
 			this.exactMatchIndex = 0;
@@ -185,21 +185,21 @@ var AccentJiten = (() => {
 				let i = fromIndex;
 				for ( ; i < toIndex; i++) {
 					const entryOffset = AJ.entryArray_getEntry_entryOffset(data, i);
-					const match1 = AJS.matchWordVariants(data, entryOffset, query);
-					if (match1 === AJS.EXACT_MATCH) {
+					const match1 = AJ.matchWordVariants(data, entryOffset, query);
+					if (match1 === AJ.EXACT_MATCH) {
 						exactMatchesArr[nExactMatches++] = entryOffset;
 					} else {
-						const match2 = AJS.matchSyllables(data, syllablePool, entryOffset, syllableTrie);
+						const match2 = AJ.matchSyllables(data, syllablePool, entryOffset, syllableTrie);
 						switch (match2) {
-							case AJS.NO_MATCH:
-								if (match1 === AJS.NON_EXACT_MATCH) {
+							case AJ.NO_MATCH:
+								if (match1 === AJ.NON_EXACT_MATCH) {
 									nonExactMatchesArr[nNonExactMatches++] = entryOffset;
 								}
 								break;
-							case AJS.NON_EXACT_MATCH:
+							case AJ.NON_EXACT_MATCH:
 								nonExactMatchesArr[nNonExactMatches++] = entryOffset;
 								break;
-							case AJS.EXACT_MATCH:
+							case AJ.EXACT_MATCH:
 								exactMatchesArr[nExactMatches++] = entryOffset;
 								break;
 						}
@@ -340,25 +340,25 @@ var AccentJiten = (() => {
 			let nExactMatches = 0;
 			let nNonExactMatches = 0;
 			
-			const syllableTrie = AJS.createSyllableTrie(syllableFormPool, query);
+			const syllableTrie = AJ.createSyllableTrie(syllableFormPool, query);
 			const entryArrayLength = AJ.entryArray_getLength(data);
 			for (let i = 0; i < entryArrayLength; i++) {
 				const entryOffset = AJ.entryArray_getEntry_entryOffset(data, i);
-				const match1 = AJS.matchWordVariants(data, entryOffset, query);
-				if (match1 === AJS.EXACT_MATCH) {
+				const match1 = AJ.matchWordVariants(data, entryOffset, query);
+				if (match1 === AJ.EXACT_MATCH) {
 					exactMatchesArr[nExactMatches++] = entryOffset;
 				} else {
-					const match2 = AJS.matchSyllables(data, syllablePool, entryOffset, syllableTrie);
+					const match2 = AJ.matchSyllables(data, syllablePool, entryOffset, syllableTrie);
 					switch (match2) {
-						case AJS.NO_MATCH:
-							if (match1 === AJS.NON_EXACT_MATCH) {
+						case AJ.NO_MATCH:
+							if (match1 === AJ.NON_EXACT_MATCH) {
 								nonExactMatchesArr[nNonExactMatches++] = entryOffset;
 							}
 							break;
-						case AJS.NON_EXACT_MATCH:
+						case AJ.NON_EXACT_MATCH:
 							nonExactMatchesArr[nNonExactMatches++] = entryOffset;
 							break;
-						case AJS.EXACT_MATCH:
+						case AJ.EXACT_MATCH:
 							exactMatchesArr[nExactMatches++] = entryOffset;
 							break;
 					}
@@ -376,14 +376,14 @@ var AccentJiten = (() => {
 			let anyNonExactMatch = false;
 			for (let i = 0; i < stringArrayLength; i++) {
 				const stringOffset = AJ.stringArray_getString_stringOffset(data, stringArrayOffset, i);
-				const match = AJS.matchWordVariant(data, stringOffset, query);
+				const match = AJ.matchWordVariant(data, stringOffset, query);
 				switch (match) {
-					case AJS.NO_MATCH: break;
-					case AJS.EXACT_MATCH: return AJS.EXACT_MATCH;
-					case AJS.NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
+					case AJ.NO_MATCH: break;
+					case AJ.EXACT_MATCH: return AJ.EXACT_MATCH;
+					case AJ.NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
 				}
 			}
-			return anyNonExactMatch ? AJS.NON_EXACT_MATCH : AJS.NO_MATCH;
+			return anyNonExactMatch ? AJ.NON_EXACT_MATCH : AJ.NO_MATCH;
 		}
 		
 		static matchWordVariant(data, stringOffset, query) {
@@ -393,9 +393,9 @@ var AccentJiten = (() => {
 				if (i >= stringLength) return null;
 				const stringCharCode = AJ.string_getCharCode(data, stringOffset, i);
 				const queryCharCode = query.charCodeAt(i);
-				if (stringCharCode !== queryCharCode) return AJS.NO_MATCH;
+				if (stringCharCode !== queryCharCode) return AJ.NO_MATCH;
 			}
-			return stringLength === queryLength ? AJS.EXACT_MATCH : AJS.NON_EXACT_MATCH;
+			return stringLength === queryLength ? AJ.EXACT_MATCH : AJ.NON_EXACT_MATCH;
 		}
 		
 		static createSyllableTrie(syllableFormPool, query) {
@@ -412,7 +412,7 @@ var AccentJiten = (() => {
 					const syllableForm = syllableFormPool[j];
 					const childNodes = new Set();
 					for (const substring of syllableForm.romaji) {
-						const substringMatch = AJS.matchSubstring(formattedQuery, i, substring);
+						const substringMatch = AJ.matchSubstring(formattedQuery, i, substring);
 						if (substringMatch) {
 							const childNode = i + substringMatch.nMatchedChars < nodes.length
 								? nodes[i + substringMatch.nMatchedChars]
@@ -422,7 +422,7 @@ var AccentJiten = (() => {
 					}
 					{
 						const hiraganaSyllable = syllableForm.hiraganaSyllable;
-						const substringMatch = AJS.matchSubstring(formattedQuery, i, hiraganaSyllable);
+						const substringMatch = AJ.matchSubstring(formattedQuery, i, hiraganaSyllable);
 						if (substringMatch) {
 							const childNode = i + substringMatch.nMatchedChars < nodes.length
 								? nodes[i + substringMatch.nMatchedChars]
@@ -432,7 +432,7 @@ var AccentJiten = (() => {
 					}
 					{
 						const katakanaSyllable = syllableForm.katakanaSyllable;
-						const substringMatch = AJS.matchSubstring(formattedQuery, i, katakanaSyllable);
+						const substringMatch = AJ.matchSubstring(formattedQuery, i, katakanaSyllable);
 						if (substringMatch) {
 							const childNode = i + substringMatch.nMatchedChars < nodes.length
 								? nodes[i + substringMatch.nMatchedChars]
@@ -467,43 +467,43 @@ var AccentJiten = (() => {
 				const syllableArrayOffset =
 					AJ.syllableArrayArray_getSyllableArray_syllableArrayOffset(data, syllableArrayArrayOffset, i);
 				const syllableArrayLength = AJ.syllableArray_getLength(data, syllableArrayOffset);
-				const match = AJS.matchSyllablesRecursive(
+				const match = AJ.matchSyllablesRecursive(
 					data, syllablePool, nodes[0], syllableArrayOffset, 0, syllableArrayLength);
 				switch (match) {
-					case AJS.NO_MATCH: break;
-					case AJS.EXACT_MATCH: return AJS.EXACT_MATCH;
-					case AJS.NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
+					case AJ.NO_MATCH: break;
+					case AJ.EXACT_MATCH: return AJ.EXACT_MATCH;
+					case AJ.NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
 				}
 			}
-			return anyNonExactMatch ? AJS.NON_EXACT_MATCH : AJS.NO_MATCH;
+			return anyNonExactMatch ? AJ.NON_EXACT_MATCH : AJ.NO_MATCH;
 		}
 		
 		static matchSyllablesRecursive(data, syllablePool, node,
 					syllableArrayOffset, syllableArrayIndex, syllableArrayLength) {
 			if (syllableArrayIndex >= syllableArrayLength) {
-				return AJS.NO_MATCH;
+				return AJ.NO_MATCH;
 			}
 			const syllablePoolIndex =
 				AJ.syllableArray_getSyllable_syllablePoolIndex(data, syllableArrayOffset, syllableArrayIndex);
 			const syllable = syllablePool[syllablePoolIndex];
 			const childNodes = node.children[syllable.form.poolIndex];
 			if (!childNodes) {
-				return AJS.NO_MATCH;
+				return AJ.NO_MATCH;
 			}
 			let anyNonExactMatch = false;
 			for (const childNode of childNodes) {
 				const match = !childNode.isLeaf
-					? AJS.matchSyllablesRecursive(data, syllablePool, childNode, syllableArrayOffset,
+					? AJ.matchSyllablesRecursive(data, syllablePool, childNode, syllableArrayOffset,
 						syllableArrayIndex + 1, syllableArrayLength)
 					: childNode.isCompleteMatchLeaf && syllableArrayIndex === syllableArrayLength - 1
-						? AJS.EXACT_MATCH : AJS.NON_EXACT_MATCH;
+						? AJ.EXACT_MATCH : AJ.NON_EXACT_MATCH;
 				switch (match) {
-					case AJS.NO_MATCH: break;
-					case AJS.EXACT_MATCH: return AJS.EXACT_MATCH;
-					case AJS.NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
+					case AJ.NO_MATCH: break;
+					case AJ.EXACT_MATCH: return AJ.EXACT_MATCH;
+					case AJ.NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
 				}
 			}
-			return anyNonExactMatch ? AJS.NON_EXACT_MATCH : AJS.NO_MATCH;
+			return anyNonExactMatch ? AJ.NON_EXACT_MATCH : AJ.NO_MATCH;
 		}
 		
 		static getUint8At(dataView, pos) {
