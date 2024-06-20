@@ -157,11 +157,9 @@ async function init() {
 												=== H_CHARCODE;
 										const nextTokenIsHigh =
 											token.type !== "mora" ? tokenIsHigh :
-											!nextToken ? accent.charCodeAt(accent.length - 1) === H_CHARCODE :
-												accent.charCodeAt(accentI === accent.length - 3
-													? accent.length - 1 :
-														token.type === "mora" ? accentI + 1 : accentI)
-															=== H_CHARCODE;
+												!nextToken ? accent.charCodeAt(accent.length - 1) === H_CHARCODE :
+													accent.charCodeAt(accentI === accent.length - 3
+														? accent.length - 1 : accentI + 1) === H_CHARCODE;
 										
 										const tokenElem = document.createElement("span");
 										tokenElem.textContent = token.value;
