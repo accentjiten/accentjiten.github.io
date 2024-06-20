@@ -92,40 +92,40 @@ var AccentJiten = (() => {
 		
 		initialize() {
 			const data = this.data;
-			const entryArrayLength = AJD.entryArray_getLength(data);
+			const entryArrayLength = AJ.entryArray_getLength(data);
 			const syllableFormPoolOffset = 3 + (entryArrayLength * 3 * 3);
 			
 			let pos = syllableFormPoolOffset;
 			
-			const nSyllableFormPool = AJD.getUint16At(data, pos);
+			const nSyllableFormPool = AJ.getUint16At(data, pos);
 			pos += 2;
 			const syllableFormPool = new Array(nSyllableFormPool);
 			for (let i = 0; i < nSyllableFormPool; i++) {
-				const nHiraganaMoras = AJD.getUint8At(data, pos);
+				const nHiraganaMoras = AJ.getUint8At(data, pos);
 				pos += 1;
 				const hiraganaMoras = new Array(nHiraganaMoras);
 				for (let j = 0; j < nHiraganaMoras; j++) {
-					hiraganaMoras[j] = AJD.getStringAt(data, pos);
+					hiraganaMoras[j] = AJ.getStringAt(data, pos);
 					pos += 1 + (hiraganaMoras[j].length * 2);
 				}
 				
-				const nKatakanaMoras = AJD.getUint8At(data, pos);
+				const nKatakanaMoras = AJ.getUint8At(data, pos);
 				pos += 1;
 				const katakanaMoras = new Array(nKatakanaMoras);
 				for (let j = 0; j < nKatakanaMoras; j++) {
-					katakanaMoras[j] = AJD.getStringAt(data, pos);
+					katakanaMoras[j] = AJ.getStringAt(data, pos);
 					pos += 1 + (katakanaMoras[j].length * 2);
 				}
 				
-				const nRomaji = AJD.getUint8At(data, pos);
+				const nRomaji = AJ.getUint8At(data, pos);
 				pos += 1;
 				const romaji = new Array(nRomaji);
 				for (let j = 0; j < nRomaji; j++) {
-					romaji[j] = AJD.getStringAt(data, pos);
+					romaji[j] = AJ.getStringAt(data, pos);
 					pos += 1 + (romaji[j].length * 2);
 				}
 				
-				const isPunctuationValue = AJD.getUint8At(data, pos);
+				const isPunctuationValue = AJ.getUint8At(data, pos);
 				pos += 1;
 				const isPunctuation = isPunctuationValue ? true : false;
 				
@@ -134,14 +134,14 @@ var AccentJiten = (() => {
 					poolIndex: i, isPunctuation: isPunctuation };
 			}
 			
-			const nSyllablePool = AJD.getUint16At(data, pos);
+			const nSyllablePool = AJ.getUint16At(data, pos);
 			pos += 2;
 			const syllablePool = new Array(nSyllablePool);
 			for (let i = 0; i < nSyllablePool; i++) {
-				const syllableFormPoolIndex = AJD.getUint16At(data, pos);
+				const syllableFormPoolIndex = AJ.getUint16At(data, pos);
 				pos += 2;
 				const syllableForm = syllableFormPool[syllableFormPoolIndex];
-				const hiraganaOrKatakana = AJD.getUint8At(data, pos);
+				const hiraganaOrKatakana = AJ.getUint8At(data, pos);
 				pos += 1;
 				const syllable = { form: syllableForm, hiraganaOrKatakana: hiraganaOrKatakana, poolIndex: i };
 				syllablePool[i] = syllable;
@@ -177,14 +177,14 @@ var AccentJiten = (() => {
 				const nonExactMatchesArr = this.nonExactMatchesArr;
 				let nExactMatches = this.nExactMatches;
 				let nNonExactMatches = this.nNonExactMatches;
-				const entryArrayLength = AJD.entryArray_getLength(data);
+				const entryArrayLength = AJ.entryArray_getLength(data);
 				const nMaxIter = 1000;
 				
 				const fromIndex = this.searchIndex;
 				const toIndex = Math.min(fromIndex + nMaxIter, entryArrayLength);
 				let i = fromIndex;
 				for ( ; i < toIndex; i++) {
-					const entryOffset = AJD.entryArray_getEntry_entryOffset(data, i);
+					const entryOffset = AJ.entryArray_getEntry_entryOffset(data, i);
 					const match1 = AJS.matchWordVariants(data, entryOffset, query);
 					if (match1 === AJS.EXACT_MATCH) {
 						exactMatchesArr[nExactMatches++] = entryOffset;
@@ -253,20 +253,20 @@ var AccentJiten = (() => {
 		}
 		
 		static entry_toObject(data, syllablePool, entryOffset) {
-			const stringArrayOffset = AJD.entry_getWordVariants_stringArrayOffset(data, entryOffset);
-			const stringOffset = AJD.stringArray_getString_stringOffset(data, stringArrayOffset, 0);
-			const word = AJD.string_get(data, stringOffset);
-			const pronunciationArrayOffset = AJD.entry_getPronunciations_pronunciationArrayOffset(data, entryOffset);
+			const stringArrayOffset = AJ.entry_getWordVariants_stringArrayOffset(data, entryOffset);
+			const stringOffset = AJ.stringArray_getString_stringOffset(data, stringArrayOffset, 0);
+			const word = AJ.string_get(data, stringOffset);
+			const pronunciationArrayOffset = AJ.entry_getPronunciations_pronunciationArrayOffset(data, entryOffset);
 			const pronunciations = AJ.pronunciationArray_toObject(data, syllablePool, pronunciationArrayOffset);
 			return { word: word, pronunciations: pronunciations };
 		}
 		
 		static pronunciationArray_toObject(data, syllablePool, pronunciationArrayOffset) {
-			const pronunciationArrayLength = AJD.pronunciationArray_getLength(data, pronunciationArrayOffset);
+			const pronunciationArrayLength = AJ.pronunciationArray_getLength(data, pronunciationArrayOffset);
 			const array = new Array(pronunciationArrayLength);
 			for (let i = 0; i < pronunciationArrayLength; i++) {
 				const pronunciationOffset =
-					AJD.pronunciationArray_getPronunciation_pronunciationOffset(data, pronunciationArrayOffset, i);
+					AJ.pronunciationArray_getPronunciation_pronunciationOffset(data, pronunciationArrayOffset, i);
 				const pronunciation = AJ.pronunciation_toObject(data, syllablePool, pronunciationOffset);
 				array[i] = pronunciation;
 			}
@@ -274,11 +274,11 @@ var AccentJiten = (() => {
 		}
 		
 		static pronunciation_toObject(data, syllablePool, pronunciationOffset) {
-			const syllableArrayOffset = AJD.pronunciation_getReading_syllableArrayOffset(data, pronunciationOffset);
+			const syllableArrayOffset = AJ.pronunciation_getReading_syllableArrayOffset(data, pronunciationOffset);
 			const syllableArray = AJ.syllableArray_toObject(data, syllablePool, syllableArrayOffset);
-			const stringOffset = AJD.pronunciation_getAccent_stringOffset(data, pronunciationOffset);
-			const accent = AJD.string_get(data, stringOffset);
-			const sourceArrayOffset = AJD.pronunciation_getSources_sourceArrayOffset(data, pronunciationOffset);
+			const stringOffset = AJ.pronunciation_getAccent_stringOffset(data, pronunciationOffset);
+			const accent = AJ.string_get(data, stringOffset);
+			const sourceArrayOffset = AJ.pronunciation_getSources_sourceArrayOffset(data, pronunciationOffset);
 			const sourceArray = AJ.sourceArray_toObject(data, sourceArrayOffset);
 			return {
 				accent: accent,
@@ -289,11 +289,11 @@ var AccentJiten = (() => {
 		}
 		
 		static syllableArray_toObject(data, syllablePool, syllableArrayOffset) {
-			const syllableArrayLength = AJD.syllableArray_getLength(data, syllableArrayOffset);
+			const syllableArrayLength = AJ.syllableArray_getLength(data, syllableArrayOffset);
 			const array = [];
 			for (let i = 0; i < syllableArrayLength; i++) {
 				const syllablePoolIndex =
-					AJD.syllableArray_getSyllable_syllablePoolIndex(data, syllableArrayOffset, i);
+					AJ.syllableArray_getSyllable_syllablePoolIndex(data, syllableArrayOffset, i);
 				const syllable = syllablePool[syllablePoolIndex];
 				const syllableForm = syllable.form;
 				const moras = !syllable.hiraganaOrKatakana ? syllableForm.hiraganaMoras : syllableForm.katakanaMoras;
@@ -306,10 +306,10 @@ var AccentJiten = (() => {
 		}
 		
 		static sourceArray_toObject(data, sourceArrayOffset) {
-			const sourceArrayLength = AJD.sourceArray_getLength(data, sourceArrayOffset);
+			const sourceArrayLength = AJ.sourceArray_getLength(data, sourceArrayOffset);
 			const array = new Array(sourceArrayLength);
 			for (let i = 0; i < sourceArrayLength; i++) {
-				const source = AJD.sourceArray_getSource(data, sourceArrayOffset, i);
+				const source = AJ.sourceArray_getSource(data, sourceArrayOffset, i);
 				switch (source) {
 					case 0: array[i] = "Wadoku"; break;
 					case 1: array[i] = "OJAD"; break;
@@ -320,10 +320,6 @@ var AccentJiten = (() => {
 			}
 			return array;
 		}
-		
-	}
-	
-	class AJS {
 		
 		static NO_MATCH = 0;
 		static EXACT_MATCH = 1;
@@ -345,9 +341,9 @@ var AccentJiten = (() => {
 			let nNonExactMatches = 0;
 			
 			const syllableTrie = AJS.createSyllableTrie(syllableFormPool, query);
-			const entryArrayLength = AJD.entryArray_getLength(data);
+			const entryArrayLength = AJ.entryArray_getLength(data);
 			for (let i = 0; i < entryArrayLength; i++) {
-				const entryOffset = AJD.entryArray_getEntry_entryOffset(data, i);
+				const entryOffset = AJ.entryArray_getEntry_entryOffset(data, i);
 				const match1 = AJS.matchWordVariants(data, entryOffset, query);
 				if (match1 === AJS.EXACT_MATCH) {
 					exactMatchesArr[nExactMatches++] = entryOffset;
@@ -375,11 +371,11 @@ var AccentJiten = (() => {
 		}
 		
 		static matchWordVariants(data, entryOffset, query) {
-			const stringArrayOffset = AJD.entry_getWordVariants_stringArrayOffset(data, entryOffset);
-			const stringArrayLength = AJD.stringArray_getLength(data, stringArrayOffset);
+			const stringArrayOffset = AJ.entry_getWordVariants_stringArrayOffset(data, entryOffset);
+			const stringArrayLength = AJ.stringArray_getLength(data, stringArrayOffset);
 			let anyNonExactMatch = false;
 			for (let i = 0; i < stringArrayLength; i++) {
-				const stringOffset = AJD.stringArray_getString_stringOffset(data, stringArrayOffset, i);
+				const stringOffset = AJ.stringArray_getString_stringOffset(data, stringArrayOffset, i);
 				const match = AJS.matchWordVariant(data, stringOffset, query);
 				switch (match) {
 					case AJS.NO_MATCH: break;
@@ -391,11 +387,11 @@ var AccentJiten = (() => {
 		}
 		
 		static matchWordVariant(data, stringOffset, query) {
-			const stringLength = AJD.string_getLength(data, stringOffset);
+			const stringLength = AJ.string_getLength(data, stringOffset);
 			const queryLength = query.length;
 			for (let i = 0; i < queryLength; i++) {
 				if (i >= stringLength) return null;
-				const stringCharCode = AJD.string_getCharCode(data, stringOffset, i);
+				const stringCharCode = AJ.string_getCharCode(data, stringOffset, i);
 				const queryCharCode = query.charCodeAt(i);
 				if (stringCharCode !== queryCharCode) return AJS.NO_MATCH;
 			}
@@ -464,13 +460,13 @@ var AccentJiten = (() => {
 		static matchSyllables(data, syllablePool, entryOffset, syllableTrie) {
 			const nodes = syllableTrie;
 			if (nodes.length === 0) return 0;
-			const syllableArrayArrayOffset = AJD.entry_getReadings_syllableArrayArrayOffset(data, entryOffset);
-			const syllableArrayArrayLength = AJD.syllableArrayArray_getLength(data, syllableArrayArrayOffset);
+			const syllableArrayArrayOffset = AJ.entry_getReadings_syllableArrayArrayOffset(data, entryOffset);
+			const syllableArrayArrayLength = AJ.syllableArrayArray_getLength(data, syllableArrayArrayOffset);
 			let anyNonExactMatch = false;
 			for (let i = 0; i < syllableArrayArrayLength; i++) {
 				const syllableArrayOffset =
-					AJD.syllableArrayArray_getSyllableArray_syllableArrayOffset(data, syllableArrayArrayOffset, i);
-				const syllableArrayLength = AJD.syllableArray_getLength(data, syllableArrayOffset);
+					AJ.syllableArrayArray_getSyllableArray_syllableArrayOffset(data, syllableArrayArrayOffset, i);
+				const syllableArrayLength = AJ.syllableArray_getLength(data, syllableArrayOffset);
 				const match = AJS.matchSyllablesRecursive(
 					data, syllablePool, nodes[0], syllableArrayOffset, 0, syllableArrayLength);
 				switch (match) {
@@ -488,7 +484,7 @@ var AccentJiten = (() => {
 				return AJS.NO_MATCH;
 			}
 			const syllablePoolIndex =
-				AJD.syllableArray_getSyllable_syllablePoolIndex(data, syllableArrayOffset, syllableArrayIndex);
+				AJ.syllableArray_getSyllable_syllablePoolIndex(data, syllableArrayOffset, syllableArrayIndex);
 			const syllable = syllablePool[syllablePoolIndex];
 			const childNodes = node.children[syllable.form.poolIndex];
 			if (!childNodes) {
@@ -509,10 +505,6 @@ var AccentJiten = (() => {
 			}
 			return anyNonExactMatch ? AJS.NON_EXACT_MATCH : AJS.NO_MATCH;
 		}
-	
-	}
-	
-	class AJD {
 		
 		static getUint8At(dataView, pos) {
 			return dataView.getUint8(pos);
@@ -537,7 +529,7 @@ var AccentJiten = (() => {
 		}
 		
 		static entryArray_getLength(dataView) {
-			return AJD.getUint24At(dataView, 0);
+			return AJ.getUint24At(dataView, 0);
 		}
 		
 		static entryArray_getEntry_entryOffset(dataView, index) {
@@ -545,79 +537,79 @@ var AccentJiten = (() => {
 		}
 		
 		static entry_getWordVariants_stringArrayOffset(dataView, entryOffset) {
-			return AJD.getUint24At(dataView, entryOffset);
+			return AJ.getUint24At(dataView, entryOffset);
 		}
 		
 		static entry_getReadings_syllableArrayArrayOffset(dataView, entryOffset) {
-			return AJD.getUint24At(dataView, entryOffset + 3);
+			return AJ.getUint24At(dataView, entryOffset + 3);
 		}
 		
 		static entry_getPronunciations_pronunciationArrayOffset(dataView, entryOffset) {
-			return AJD.getUint24At(dataView, entryOffset + 6);
+			return AJ.getUint24At(dataView, entryOffset + 6);
 		}
 		
 		static stringArray_getLength(dataView, stringArrayOffset) {
-			return AJD.getUint8At(dataView, stringArrayOffset);
+			return AJ.getUint8At(dataView, stringArrayOffset);
 		}
 		
 		static stringArray_getString_stringOffset(dataView, stringArrayOffset, index) {
-			return AJD.getUint24At(dataView, (stringArrayOffset + 1) + (index * 3));
+			return AJ.getUint24At(dataView, (stringArrayOffset + 1) + (index * 3));
 		}
 		
 		static string_get(dataView, stringOffset) {
-			return AJD.getStringAt(dataView, stringOffset);
+			return AJ.getStringAt(dataView, stringOffset);
 		}
 		
 		static string_getLength(dataView, stringOffset) {
-			return AJD.getUint8At(dataView, stringOffset);
+			return AJ.getUint8At(dataView, stringOffset);
 		}
 		
 		static string_getCharCode(dataView, stringOffset, index) {
-			return AJD.getUint16At(dataView, (stringOffset + 1) + (index * 2));
+			return AJ.getUint16At(dataView, (stringOffset + 1) + (index * 2));
 		}
 		
 		static syllableArrayArray_getLength(dataView, syllableArrayArrayOffset) {
-			return AJD.getUint8At(dataView, syllableArrayArrayOffset);
+			return AJ.getUint8At(dataView, syllableArrayArrayOffset);
 		}
 		
 		static syllableArrayArray_getSyllableArray_syllableArrayOffset(dataView, syllableArrayArrayOffset, index) {
-			return AJD.getUint24At(dataView, (syllableArrayArrayOffset + 1) + (index * 3));
+			return AJ.getUint24At(dataView, (syllableArrayArrayOffset + 1) + (index * 3));
 		}
 		
 		static syllableArray_getLength(dataView, syllableArrayOffset) {
-			return AJD.getUint8At(dataView, syllableArrayOffset);
+			return AJ.getUint8At(dataView, syllableArrayOffset);
 		}
 		
 		static syllableArray_getSyllable_syllablePoolIndex(dataView, syllableArrayOffset, index) {
-			return AJD.getUint16At(dataView, (syllableArrayOffset + 1) + (index * 2));
+			return AJ.getUint16At(dataView, (syllableArrayOffset + 1) + (index * 2));
 		}
 		
 		static pronunciationArray_getLength(dataView, pronunciationArrayOffset) {
-			return AJD.getUint8At(dataView, pronunciationArrayOffset);
+			return AJ.getUint8At(dataView, pronunciationArrayOffset);
 		}
 		
 		static pronunciationArray_getPronunciation_pronunciationOffset(dataView, pronunciationArrayOffset, index) {
-			return AJD.getUint24At(dataView, (pronunciationArrayOffset + 1) + (index * 3));
+			return AJ.getUint24At(dataView, (pronunciationArrayOffset + 1) + (index * 3));
 		}
 		
 		static pronunciation_getReading_syllableArrayOffset(dataView, pronunciationOffset) {
-			return AJD.getUint24At(dataView, pronunciationOffset);
+			return AJ.getUint24At(dataView, pronunciationOffset);
 		}
 		
 		static pronunciation_getAccent_stringOffset(dataView, pronunciationOffset) {
-			return AJD.getUint24At(dataView, pronunciationOffset + 3);
+			return AJ.getUint24At(dataView, pronunciationOffset + 3);
 		}
 		
 		static pronunciation_getSources_sourceArrayOffset(dataView, pronunciationOffset) {
-			return AJD.getUint24At(dataView, pronunciationOffset + 6);
+			return AJ.getUint24At(dataView, pronunciationOffset + 6);
 		}
 		
 		static sourceArray_getLength(dataView, sourceArrayOffset) {
-			return AJD.getUint8At(dataView, sourceArrayOffset);
+			return AJ.getUint8At(dataView, sourceArrayOffset);
 		}
 		
 		static sourceArray_getSource(dataView, sourceArrayOffset, index) {
-			return AJD.getUint8At(dataView, (sourceArrayOffset + 1) + (index));
+			return AJ.getUint8At(dataView, (sourceArrayOffset + 1) + (index));
 		}
 		
 	}
