@@ -9,7 +9,7 @@ Copyright (c) 2024 accentjiten
 init().then(
 	() => { },
 	(error) => {
-		console.log(error);
+		console.error(error);
 	}
 );
 
@@ -38,7 +38,7 @@ async function init() {
 			ret.postMessage({name: "loadstart"});
 			return ret;
 		} catch (error) {
-			console.log(error);
+			console.error(error);
 			handleWorkerResponse({name: "loaderror"});
 		}
 	})();
