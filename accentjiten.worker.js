@@ -57,7 +57,7 @@ var AccentJiten = (() => {
 			
 			const fileInfo = {
 				url: "accentjiten.dat.lzma",
-				version: "71",
+				version: "72",
 				uncompressedSize: 16532163
 			};
 			
