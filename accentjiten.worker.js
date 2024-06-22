@@ -57,7 +57,7 @@ var AccentJiten = (() => {
 			
 			const fileInfo = {
 				url: "accentjiten.dat.lzma",
-				version: "70",
+				version: "71",
 				uncompressedSize: 16532163
 			};
 			
@@ -72,7 +72,6 @@ var AccentJiten = (() => {
 				const outStream = { writeByte: (byte) => { outUint8Array[outOffset++] = byte; } };
 				LZMA.decompressFile(inStream, outStream);
 				return ret;
-				
 			})();
 			
 			this.data = new DataView(arrayBuffer);
