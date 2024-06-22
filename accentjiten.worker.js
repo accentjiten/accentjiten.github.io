@@ -19,12 +19,12 @@ onmessage = (event) => {
 						postMessage({name: "loadsuccess"});
 					},
 					(error) => {
-						console.log(error);
+						console.error(error);
 						postMessage({name: "loaderror"});
 					}
 				);
 			} catch (error) {
-				console.log(error);
+				console.error(error);
 				postMessage({name: "loaderror"});
 			}
 			break;
@@ -62,17 +62,8 @@ var AccentJiten = (() => {
 			};
 			
 			const arrayBuffer = await (async function() {
-				
-				const lzmaArrayBuffer = await (async function() {
-					const response = await fetch(fileInfo.url);
-					if (!response) throw new Error();
-					const ret = await response.arrayBuffer();
-					if (!ret) throw new Error();
-					return ret;
-				})();
-				
+				const lzmaArrayBuffer = await AJ.cacheURL(fileInfo.url, fileInfo.version);
 				const ret = new ArrayBuffer(fileInfo.uncompressedSize);
-				
 				const inUint8Array = new Uint8Array(lzmaArrayBuffer);
 				const outUint8Array = new Uint8Array(ret);
 				let inOffset = 0;
@@ -80,7 +71,6 @@ var AccentJiten = (() => {
 				const inStream = { readByte: () => inUint8Array[inOffset++] };
 				const outStream = { writeByte: (byte) => { outUint8Array[outOffset++] = byte; } };
 				LZMA.decompressFile(inStream, outStream);
-				
 				return ret;
 				
 			})();
@@ -151,6 +141,82 @@ var AccentJiten = (() => {
 			this.syllablePool = syllablePool;
 			this.exactMatchesArr = new Uint32Array(entryArrayLength);
 			this.nonExactMatchesArr = new Uint32Array(entryArrayLength);
+		}
+		
+		static async cacheURL(url, version) {
+			try {
+				const dbVersion = await dbGet("version");
+				if (dbVersion === version) {
+					const arrayBuffer = await dbGet("buf");
+					console.log("Loaded " + url + " version " + version + " from cache");
+					return arrayBuffer;
+				} else {
+					const arrayBuffer = await downloadURL(url);
+					await dbReset({"buf": arrayBuffer, "version": version});
+					if (dbVersion) {
+						console.log("Downloaded and cached " + url + " from version " + dbVersion + " to " + version);
+					} else {
+						console.log("Downloaded and cached " + url + " version " + version);
+					}
+					return arrayBuffer;
+				}
+			} catch (error) {
+				console.error(error);
+				return await downloadURL(url);
+			}
+			
+			async function dbGet(key) {
+				return await new Promise((resolve, reject) => {
+					const dbRequest = indexedDB.open("aj");
+					dbRequest.onerror = (error) => {
+						reject(error);
+					};
+					dbRequest.onsuccess = (event) => {
+						const db = event.target.result;
+						if (!db.objectStoreNames.contains("aj")) {
+							db.close();
+							resolve(null);
+						} else {
+							const valueRequest = db.transaction(["aj"]).objectStore("aj").get(key);
+							valueRequest.onerror = (error) => { reject(error); };
+							valueRequest.onsuccess = (event) => { 
+								db.close();
+								resolve(event.target.result);
+							};
+						}
+					};
+				});
+			}
+			
+			async function dbReset(values) {
+				await new Promise((resolve, reject) => {
+					const request = indexedDB.deleteDatabase("aj");
+					request.onerror = (error) => { reject(error); };
+					request.onsuccess = (event) => { resolve(); };
+				});
+				await new Promise((resolve, reject) => {
+					const request = indexedDB.open("aj");
+					request.onerror = (error) => { reject(error); };
+					request.onupgradeneeded = (event) => {
+						const db = event.target.result;
+						const objectStore = db.createObjectStore("aj");
+						for (const key in values) {
+							objectStore.put(values[key], key);
+						}
+						db.close();
+						resolve();
+					};
+				});
+			}
+			
+			async function downloadURL(url) {
+				const response = await fetch(url);
+				if (!response) throw new Error();
+				const ret = await response.arrayBuffer();
+				if (!ret) throw new Error();
+				return ret;
+			}
+			
 		}
 		
 		resetSearchCoroutine(query, searchID) {
