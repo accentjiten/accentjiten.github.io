@@ -26,7 +26,8 @@ async function init() {
 	
 	let introDesc = document.createElement("p");
 	introDesc.innerHTML = "日本語アクセント辞典<br>使い方：入力で単語を検索する<br><br>" +
-		"Real-time Japanese pitch accent dictionary<br>(How to use: search a word<br>Try typing \"konnichiwa\")";
+		"Real-time Japanese pitch accent dictionary<br>(How to use: search a word<br>Try typing \"konnichiwa\")" +
+		"<br><br>Coming soon: conjugations";
 	
 	const searchResults = document.createElement("p");
 	let searchResultsChild;
