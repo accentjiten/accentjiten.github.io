@@ -56,13 +56,14 @@ var AccentJiten = (() => {
 			if (this.initialized) throw new Error();
 			
 			const fileInfo = {
-				url: "accentjiten.dat.lzma",
-				version: "74",
+				url: "accentjiten-75.dat.lzma",
+				keyName: "accentjiten.dat.lzma",
+				version: "75",
 				uncompressedSize: 16612629
 			};
 			
 			const arrayBuffer = await (async function() {
-				const lzmaArrayBuffer = await AJ.cacheURL(fileInfo.url, fileInfo.version);
+				const lzmaArrayBuffer = await AJ.cacheURL(fileInfo.url, fileInfo.keyName, fileInfo.version);
 				const ret = new ArrayBuffer(fileInfo.uncompressedSize);
 				const inUint8Array = new Uint8Array(lzmaArrayBuffer);
 				const outUint8Array = new Uint8Array(ret);
@@ -142,20 +143,21 @@ var AccentJiten = (() => {
 			this.nonExactMatchesArr = new Uint32Array(entryArrayLength);
 		}
 		
-		static async cacheURL(url, version) {
+		static async cacheURL(url, keyName, version) {
 			try {
 				const dbVersion = await dbGet("version");
 				if (dbVersion === version) {
 					const arrayBuffer = await dbGet("buf");
-					console.log("Loaded " + url + " version " + version + " from cache");
+					console.log("Loaded " + keyName + " version " + version + " from cache");
 					return arrayBuffer;
 				} else {
 					const arrayBuffer = await downloadURL(url);
-					await dbReset({"buf": arrayBuffer, "version": version});
+					await dbReset({[keyName + "buf"]: arrayBuffer, "version": version});
 					if (dbVersion) {
-						console.log("Downloaded and cached " + url + " from version " + dbVersion + " to " + version);
+						console.log(
+							"Downloaded and cached " + keyName + " from version " + dbVersion + " to " + version);
 					} else {
-						console.log("Downloaded and cached " + url + " version " + version);
+						console.log("Downloaded and cached " + keyName + " version " + version);
 					}
 					return arrayBuffer;
 				}
