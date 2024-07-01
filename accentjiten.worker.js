@@ -147,7 +147,7 @@ var AccentJiten = (() => {
 			try {
 				const dbVersion = await dbGet("version");
 				if (dbVersion === version) {
-					const arrayBuffer = await dbGet("buf");
+					const arrayBuffer = await dbGet(keyName + "buf");
 					console.log("Loaded " + keyName + " version " + version + " from cache");
 					return arrayBuffer;
 				} else {
