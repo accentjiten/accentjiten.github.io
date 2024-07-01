@@ -57,8 +57,8 @@ var AccentJiten = (() => {
 			
 			const fileInfo = {
 				url: "accentjiten.dat.lzma",
-				version: "72",
-				uncompressedSize: 16532163
+				version: "74",
+				uncompressedSize: 16612629
 			};
 			
 			const arrayBuffer = await (async function() {
