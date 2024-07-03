@@ -56,9 +56,9 @@ var AccentJiten = (() => {
 			if (this.initialized) throw new Error();
 			
 			const fileInfo = {
-				url: "accentjiten-76.dat.lzma",
+				url: "accentjiten-77.dat.lzma",
 				keyName: "accentjiten.dat.lzma",
-				version: "76",
+				version: "77",
 				uncompressedSize: 16492223
 			};
 			
@@ -378,11 +378,12 @@ var AccentJiten = (() => {
 			for (let i = 0; i < sourceArrayLength; i++) {
 				const source = AJ.sourceArray_getSource(data, sourceArrayOffset, i);
 				switch (source) {
-					case 0: array[i] = "Wadoku"; break;
-					case 1: array[i] = "OJAD"; break;
-					case 2: array[i] = "NHK"; break;
-					case 3: array[i] = "Kanjium"; break;
-					case 4: array[i] = "Kishimoto Tsuneyo"; break;
+					case 0: array[i] = "AccentJiten"; break;
+					case 1: array[i] = "Wadoku"; break;
+					case 2: array[i] = "OJAD"; break;
+					case 3: array[i] = "NHK"; break;
+					case 4: array[i] = "Kanjium"; break;
+					case 5: array[i] = "Kishimoto Tsuneyo"; break;
 				}
 			}
 			return array;
