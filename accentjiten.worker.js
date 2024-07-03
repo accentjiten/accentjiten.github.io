@@ -220,6 +220,10 @@ var AccentJiten = (() => {
 			
 		}
 		
+		static NO_MATCH = 0;
+		static EXACT_MATCH = 1;
+		static NON_EXACT_MATCH = 2;
+		
 		resetSearchCoroutine(query, searchID) {
 			const data = this.data;
 			this.query = query;
@@ -387,55 +391,6 @@ var AccentJiten = (() => {
 				}
 			}
 			return array;
-		}
-		
-		static NO_MATCH = 0;
-		static EXACT_MATCH = 1;
-		static NON_EXACT_MATCH = 2;
-		
-		static search(aj, query) {
-			if (query.length === 0) {
-				aj.nExactMatches = 0;
-				aj.nNonExactMatches = 0;
-				return;
-			}
-			
-			const data = aj.data;
-			const syllableFormPool = aj.syllableFormPool;
-			const syllablePool = aj.syllablePool;
-			const exactMatchesArr = aj.exactMatchesArr;
-			const nonExactMatchesArr = aj.nonExactMatchesArr;
-			let nExactMatches = 0;
-			let nNonExactMatches = 0;
-			
-			const syllableTrie = AJ.createSyllableTrie(syllableFormPool, query);
-			const entryArrayLength = AJ.entryArray_getLength(data);
-			for (let i = 0; i < entryArrayLength; i++) {
-				const entryOffset = AJ.entryArray_getEntry_entryOffset(data, i);
-				const match1 = AJ.matchWordVariants(data, entryOffset, query);
-				if (match1 === AJ.EXACT_MATCH) {
-					exactMatchesArr[nExactMatches++] = entryOffset;
-				} else {
-					const match2 = AJ.matchSyllables(data, syllablePool, entryOffset, syllableTrie);
-					switch (match2) {
-						case AJ.NO_MATCH:
-							if (match1 === AJ.NON_EXACT_MATCH) {
-								nonExactMatchesArr[nNonExactMatches++] = entryOffset;
-							}
-							break;
-						case AJ.NON_EXACT_MATCH:
-							nonExactMatchesArr[nNonExactMatches++] = entryOffset;
-							break;
-						case AJ.EXACT_MATCH:
-							exactMatchesArr[nExactMatches++] = entryOffset;
-							break;
-					}
-				}
-			}
-			
-			aj.query = query;
-			aj.nExactMatches = nExactMatches;
-			aj.nNonExactMatches = nNonExactMatches;
 		}
 		
 		static matchWordVariants(data, entryOffset, query) {
