@@ -181,8 +181,9 @@ var AccentJiten = (() => {
 							const valueRequest = db.transaction(["aj"]).objectStore("aj").get(key);
 							valueRequest.onerror = (error) => { reject(error); };
 							valueRequest.onsuccess = (event) => { 
+								const result = event.target.result;
 								db.close();
-								resolve(event.target.result);
+								resolve(result);
 							};
 						}
 					};
