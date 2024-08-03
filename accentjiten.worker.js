@@ -483,7 +483,7 @@ var AccentJiten = (() => {
 		
 		static matchSyllables(data, syllablePool, entryOffset, syllableTrie) {
 			const nodes = syllableTrie;
-			if (nodes.length === 0) return NO_MATCH;
+			if (nodes.length === 0) return AJ.NO_MATCH;
 			const syllableArrayArrayOffset = AJ.entry_getReadings_syllableArrayArrayOffset(data, entryOffset);
 			const syllableArrayArrayLength = AJ.syllableArrayArray_getLength(data, syllableArrayArrayOffset);
 			let anyNonExactMatch = false;
