@@ -1,3 +1,3 @@
 # [accentjiten.com](https://accentjiten.com/)
 
-Japanese pitch accent dictionary
+An online Japanese pitch accent dictionary
