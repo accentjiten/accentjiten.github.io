@@ -49,7 +49,6 @@ async function init() {
 	let nEntryElems = 0;
 	const QUERY_MAX_LENGTH = 50;
 	const MAX_ENTRY_ELEMS = 500;
-	const H_CHARCODE = "H".charCodeAt(0);
 	
 	function handleWorkerResponse(data) {
 		switch (data.name) {
@@ -131,71 +130,7 @@ async function init() {
 						
 						if (entries) {
 							for (const entry of entries) {
-								const entryElem = document.createElement("span");
-								
-								const leftBrace = document.createElement("span");
-								const rightBrace = document.createElement("span");
-								leftBrace.textContent = "「";
-								rightBrace.textContent = "」";
-								const midashi = document.createElement("span");
-								midashi.textContent = entry.word;
-								entryElem.appendChild(leftBrace);
-								entryElem.appendChild(midashi);
-								entryElem.appendChild(rightBrace);
-								
-								let pronunciationI = 0;
-								for (const pronunciation of entry.pronunciations) {
-									const div = document.createElement("div");
-									div.className = "tonetext";
-									const accent = pronunciation.accent;
-									let accentI = 0;
-									const tokens = pronunciation.tokenizedKana;
-									for (let i = 0; i < tokens.length; i++) {
-										const token = tokens[i];
-										const nextToken = tokens[i + 1];
-										const tokenIsHigh = accent.charCodeAt(
-											accentI === accent.length - 2 ? accent.length - 1 : accentI)
-												=== H_CHARCODE;
-										const nextTokenIsHigh =
-											token.type !== "mora" ? tokenIsHigh :
-												!nextToken ? accent.charCodeAt(accent.length - 1) === H_CHARCODE :
-													accent.charCodeAt(accentI === accent.length - 3
-														? accent.length - 1 : accentI + 1) === H_CHARCODE;
-										
-										const tokenElem = document.createElement("span");
-										tokenElem.textContent = token.value;
-										tokenElem.className = tokenIsHigh
-											? nextTokenIsHigh ? "hightone" : "hightonenextlow"
-											: nextTokenIsHigh ? "lowtonenexthigh" : "lowtone";
-										div.appendChild(tokenElem);
-										
-										if (token.type === "mora") {
-											accentI += 1;
-										}
-									}
-									
-									entryElem.appendChild(div);
-									
-									const sourceElem = document.createElement("span");
-									sourceElem.setAttribute("style", "vertical-align:middle;");
-									const sourceElemChild1 = document.createElement("small");
-									sourceElemChild1.setAttribute("style", "color:#999999;");
-									const sourceElemChild2 = document.createElement("small");
-									sourceElemChild2.textContent =
-										pronunciation.sources.length > 1
-											? " ×" + pronunciation.sources.length
-											: " " + pronunciation.sources[0];
-									sourceElemChild1.appendChild(sourceElemChild2);
-									sourceElem.appendChild(sourceElemChild1);
-									entryElem.appendChild(sourceElem);
-									
-									if (pronunciationI < entry.pronunciations.length - 1) {
-										const emSpace = document.createElement("span");
-										emSpace.textContent = " ";
-										entryElem.appendChild(emSpace);
-									}
-									pronunciationI += 1;
-								}
+								const entryElem = createEntryElem(entry);
 								
 								searchResultsChild.appendChild(entryElem);
 								searchResultsChild.appendChild(document.createElement("hr"));
@@ -217,4 +152,96 @@ async function init() {
 			
 		}
 	}
+	
+	function createEntryElem(entry) {
+		const midashigo = entry.word;
+		const pronunciations = entry.pronunciations;
+		
+		const table = document.createElement("table");
+		
+		const leftBrace = document.createElement("span");
+		const rightBrace = document.createElement("span");
+		leftBrace.textContent = "「";
+		rightBrace.textContent = "」";
+		const midashigoSpan = document.createElement("span");
+		midashigoSpan.textContent = midashigo;
+		
+		const midashigoTr = document.createElement("tr");
+		const midashigoTd = document.createElement("td");
+		midashigoTd.setAttribute("rowspan", "0");
+		midashigoTd.appendChild(leftBrace);
+		midashigoTd.appendChild(midashigoSpan);
+		midashigoTd.appendChild(rightBrace);
+		midashigoTr.appendChild(midashigoTd);
+		
+		table.appendChild(midashigoTr);
+		
+		for (let i = 0; i < pronunciations.length; i++) {
+			const pronunciation = pronunciations[i];
+			const sources = pronunciation.sources;
+			
+			const tableTr = document.createElement("tr");
+			
+			const pronunciationElem = createAccentElem(pronunciation.accent, pronunciation.tokenizedKana);
+			const pronunciationTd = document.createElement("td");
+			pronunciationTd.appendChild(pronunciationElem);
+			tableTr.appendChild(pronunciationTd);
+			
+			const sourcesElem = document.createElement("small");
+			sourcesElem.textContent = "×" + sources.length;
+			sourcesElem.setAttribute("style", "text-align:center;");
+			sourcesElem.setAttribute("style", "color:#999999;");
+			const sourceCountElem = document.createElement("small");
+			const sourceCountElem2 = document.createElement("small");
+			sourceCountElem.appendChild(sourceCountElem2);
+			sourceCountElem2.textContent = " " + sources.join(", ");
+			sourceCountElem2.setAttribute("style", "text-align:center;");
+			sourcesElem.appendChild(sourceCountElem);
+			const sourcesTd = document.createElement("td");
+			sourcesTd.appendChild(sourcesElem);
+			tableTr.appendChild(sourcesTd);
+			
+			table.appendChild(tableTr);
+		}
+		
+		return table;
+	}
+	
+	function createAccentElem(accent, tokenizedKana) {
+		const elem = document.createElement("span");
+		
+		const div = document.createElement("div");
+		div.className = "tonetext";
+		
+		const H_CHARCODE = "H".charCodeAt(0);
+		let accentI = 0;
+		for (let i = 0; i < tokenizedKana.length; i++) {
+			const token = tokenizedKana[i];
+			const nextToken = tokenizedKana[i + 1];
+			const tokenIsHigh = accent.charCodeAt(
+				accentI === accent.length - 2 ? accent.length - 1 : accentI)
+					=== H_CHARCODE;
+			const nextTokenIsHigh =
+				token.type !== "mora" ? tokenIsHigh :
+					!nextToken ? accent.charCodeAt(accent.length - 1) === H_CHARCODE :
+						accent.charCodeAt(accentI === accent.length - 3
+							? accent.length - 1 : accentI + 1) === H_CHARCODE;
+			
+			const tokenElem = document.createElement("span");
+			tokenElem.textContent = token.value;
+			tokenElem.className = tokenIsHigh
+				? nextTokenIsHigh ? "hightone" : "hightonenextlow"
+				: nextTokenIsHigh ? "lowtonenexthigh" : "lowtone";
+			div.appendChild(tokenElem);
+			
+			if (token.type === "mora") {
+				accentI += 1;
+			}
+		}
+		
+		elem.appendChild(div);
+		
+		return elem;
+	}
+	
 }
