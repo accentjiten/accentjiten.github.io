@@ -185,6 +185,7 @@ async function init() {
 			
 			const pronunciationElem = createAccentElem(pronunciation.accent, pronunciation.tokenizedKana);
 			const pronunciationTd = document.createElement("td");
+			pronunciationTd.setAttribute("style", "padding-top:3px;padding-bottom:3px;");
 			pronunciationTd.appendChild(pronunciationElem);
 			tableTr.appendChild(pronunciationTd);
 			
