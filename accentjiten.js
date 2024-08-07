@@ -104,6 +104,7 @@ async function init() {
 								searchResults.removeChild(searchResultsChild);
 							}
 							searchResultsChild = document.createElement("span");
+							searchResultsChild.setAttribute("style", "white-space:nowrap;");
 							
 							if (searchQuery) {
 								const descElem = document.createElement("p");
