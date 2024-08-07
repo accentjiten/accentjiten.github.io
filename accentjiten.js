@@ -158,24 +158,24 @@ async function init() {
 		const midashigo = entry.word;
 		const pronunciations = entry.pronunciations;
 		
-		const table = document.createElement("table");
+		const mainTable = document.createElement("table");
+		const mainTableTr = document.createElement("tr");
 		
-		const leftBrace = document.createElement("span");
-		const rightBrace = document.createElement("span");
-		leftBrace.textContent = "「";
-		rightBrace.textContent = "」";
+		const leftBraceSpan = document.createElement("span");
+		const rightBraceSpan = document.createElement("span");
+		leftBraceSpan.textContent = "「";
+		rightBraceSpan.textContent = "」";
 		const midashigoSpan = document.createElement("span");
 		midashigoSpan.textContent = midashigo;
-		
-		const midashigoTr = document.createElement("tr");
+		const midashigoElem = document.createElement("span");
+		midashigoElem.appendChild(leftBraceSpan);
+		midashigoElem.appendChild(midashigoSpan);
+		midashigoElem.appendChild(rightBraceSpan);
 		const midashigoTd = document.createElement("td");
-		midashigoTd.setAttribute("rowspan", "0");
-		midashigoTd.appendChild(leftBrace);
-		midashigoTd.appendChild(midashigoSpan);
-		midashigoTd.appendChild(rightBrace);
-		midashigoTr.appendChild(midashigoTd);
+		midashigoTd.appendChild(midashigoElem);
+		mainTableTr.appendChild(midashigoTd);
 		
-		table.appendChild(midashigoTr);
+		const pronunciationTable = document.createElement("table");
 		
 		for (let i = 0; i < pronunciations.length; i++) {
 			const pronunciation = pronunciations[i];
@@ -202,10 +202,13 @@ async function init() {
 			sourcesTd.appendChild(sourcesElem);
 			tableTr.appendChild(sourcesTd);
 			
-			table.appendChild(tableTr);
+			pronunciationTable.appendChild(tableTr);
 		}
+		mainTableTr.appendChild(pronunciationTable);
 		
-		return table;
+		mainTable.appendChild(mainTableTr);
+		
+		return mainTable;
 	}
 	
 	function createAccentElem(accent, tokenizedKana) {
