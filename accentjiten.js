@@ -187,10 +187,9 @@ async function init() {
 			const pronunciationTd = document.createElement("td");
 			pronunciationTd.setAttribute("style", "padding-top:5px;padding-bottom:5px;");
 			pronunciationTd.appendChild(pronunciationElem);
-			tableTr.appendChild(pronunciationTd);
 			
 			const sourcesElem = document.createElement("small");
-			sourcesElem.textContent = "×" + sources.length;
+			sourcesElem.textContent = " ×" + sources.length;
 			sourcesElem.setAttribute("style", "text-align:center;");
 			sourcesElem.setAttribute("style", "color:#999999;");
 			const sourceCountElem = document.createElement("small");
@@ -199,9 +198,9 @@ async function init() {
 			sourceCountElem2.textContent = " " + sources.join(", ");
 			sourceCountElem2.setAttribute("style", "text-align:center;");
 			sourcesElem.appendChild(sourceCountElem);
-			const sourcesTd = document.createElement("td");
-			sourcesTd.appendChild(sourcesElem);
-			tableTr.appendChild(sourcesTd);
+			pronunciationTd.appendChild(sourcesElem);
+			
+			tableTr.appendChild(pronunciationTd);
 			
 			pronunciationTable.appendChild(tableTr);
 		}
