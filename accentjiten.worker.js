@@ -56,10 +56,10 @@ var AccentJiten = (() => {
 			if (this.initialized) throw new Error();
 			
 			const fileInfo = {
-				url: "accentjiten-78.dat.lzma",
+				url: "accentjiten-79.dat.lzma",
 				keyName: "accentjiten.dat.lzma",
-				version: "78",
-				uncompressedSize: 16197651
+				version: "79",
+				uncompressedSize: 16316770
 			};
 			
 			const arrayBuffer = await (async function() {
@@ -386,9 +386,10 @@ var AccentJiten = (() => {
 					case 0: array[i] = "AccentJiten"; break;
 					case 1: array[i] = "Wadoku"; break;
 					case 2: array[i] = "OJAD"; break;
-					case 3: array[i] = "NHK"; break;
-					case 4: array[i] = "Kanjium"; break;
-					case 5: array[i] = "Kishimoto Tsuneyo"; break;
+					case 3: array[i] = "Wiktionary"; break;
+					case 4: array[i] = "NHK"; break;
+					case 5: array[i] = "Kanjium"; break;
+					case 6: array[i] = "Kishimoto Tsuneyo"; break;
 				}
 			}
 			return array;
