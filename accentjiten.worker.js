@@ -56,10 +56,10 @@ var AccentJiten = (() => {
 			if (this.initialized) throw new Error();
 			
 			const fileInfo = {
-				url: "accentjiten-83.dat.lzma",
+				url: "accentjiten-84.dat.lzma",
 				keyName: "accentjiten.dat.lzma",
-				version: "83",
-				uncompressedSize: 16308299
+				version: "84",
+				uncompressedSize: 16311419
 			};
 			
 			const arrayBuffer = await (async function() {
