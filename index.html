@@ -1,12 +1,82 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <title>アクセント辞典: accentjiten.com</title>
 <meta name="description" content="An online Japanese pitch accent dictionary. オンライン日本語アクセント辞典。"/>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<meta name="viewport" content="width=device-width">
 <head>
-	<style type="text/css">
+	<style>
 		body {
-			font-size: 20px;
+			font-family: Arial, sans-serif;
+			background-color: #f9f9f9;
+			margin: 0;
+			padding: 0;
+			color: #333;
+		}
+		header {
+			padding: 7px 3px 0px 3px;
+			text-align: center;
+		}
+		header h1 {
+			margin: 0;
+			white-space: nowrap;
+			font-size: 1.3rem;
+		}
+		.search-bar {
+			margin: 10px 30px 5px 30px;
+			display: flex;
+		}
+		.search-bar input {
+			width: 100%;
+			padding: 10px;
+			font-size: 1.1rem;
+			border: 1px solid #ddd;
+			border-radius: 5px;
+		}
+		.search-bar input::placeholder {
+			color: #bbb;
+		}
+		main {
+			margin: 14px;
+		}
+		.results-counter {
+			margin: 4px 0;
+			font-size: 1.1rem;
+			color: #555;
+		}
+		.entry {
+			background-color: white;
+			border: 1px solid #ddd;
+			border-radius: 5px;
+			margin-bottom: 2px;
+			padding: 1px 13px 1px 0px;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+			width: fit-content;
+			white-space: nowrap;
+			min-width: 100%;
+			box-sizing: border-box;
+		}
+		.entry-title-bracket {
+			font-size: 1.35rem;
+			color: #bbb;
+		}
+		.entry-title {
+			font-size: 1.4rem;
+			padding-right: 5px;
+		}
+		.data-content {
+			display: inline-block;
+			margin-right: 5px;
+			font-size: 1.25rem;
+			vertical-align: middle;
+		}
+		.source-counter {
+			color: #bbb;
+			vertical-align: middle;
+		}
+		.sources {
+			color: #bbb;
+			font-size: 0.6rem;
 		}
 		.tonetext {
 			align-items: center;
@@ -28,6 +98,10 @@
 		}
 	</style>
 </head>
-<body></body>
+<body>
+	<header>
+		<h1>accentjiten [alpha]</h1>
+	</header>
+</body>
 <script src="accentjiten.js"></script>
 </html>

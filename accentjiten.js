@@ -16,33 +16,27 @@ init().then(
 async function init() {
 	"use strict";
 	
-	const input = document.createElement("input");
-	input.type = "text";
-	input.style.fontSize = "20px";
-	
-	const loadingMsg = document.createElement("p");
-	loadingMsg.innerHTML = "Loading...";
-	document.body.appendChild(loadingMsg);
-	
-	let introDesc = document.createElement("p");
-	introDesc.innerHTML = "日本語アクセント辞典<br>使い方：入力で単語を検索する<br><br>" +
-		"Japanese pitch accent dictionary<br>(How to use: search a word<br>Try typing \"konnichiwa\")" +
-		"<br><br>Coming soon: conjugations";
-	
-	const searchResults = document.createElement("p");
-	let searchResultsChild;
+	const titleElem = document.getElementsByTagName("h1")[0];
+	titleElem.innerHTML = "accentjiten [alpha]<br><br>読み込み中...<br>Loading...";
 	
 	const worker = (() => {
+		let error = null;
 		try {
 			const ret = new Worker("accentjiten.worker.js");
 			ret.addEventListener("message", (event) => handleWorkerResponse(event.data));
 			ret.postMessage({name: "loadstart"});
 			return ret;
-		} catch (error) {
-			console.error(error);
-			handleWorkerResponse({name: "loaderror"});
+		} catch (e) {
+			error = e;
+		} finally {
+			if (error) {
+				handleWorkerResponse({name: "loaderror"});
+			}
 		}
 	})();
+	
+	let searchResults;
+	let searchResultsChild;
 	
 	let searchID = 0;
 	let searchQuery;
@@ -54,12 +48,15 @@ async function init() {
 		switch (data.name) {
 			
 			case "loadsuccess": {
-				const title = document.createElement("p");
-				title.innerHTML = "accentjiten [alpha]";
-				document.body.removeChild(loadingMsg);
-				document.body.appendChild(title);
-				document.body.appendChild(input);
-				document.body.appendChild(introDesc);
+				titleElem.innerHTML = "accentjiten [alpha]";
+				const inputDiv = document.createElement("div");
+				inputDiv.setAttribute("class", "search-bar");
+				const input = document.createElement("input");
+				input.setAttribute("type", "text");
+				input.setAttribute("placeholder", "単語を検索 - Search...");
+				inputDiv.appendChild(input);
+				document.body.appendChild(inputDiv);
+				searchResults = document.createElement("main");
 				document.body.appendChild(searchResults);
 				input.addEventListener("input", (event) => {
 					const query = input.value;
@@ -96,18 +93,14 @@ async function init() {
 					if (end || (entries && entries.length > 0)) {
 						
 						if (nEntryElems === 0) {
-							if (introDesc) {
-								document.body.removeChild(introDesc);
-								introDesc = null;
-							}
 							if (searchResultsChild) {
 								searchResults.removeChild(searchResultsChild);
 							}
 							searchResultsChild = document.createElement("span");
-							searchResultsChild.setAttribute("style", "white-space:nowrap;");
 							
 							if (searchQuery) {
-								const descElem = document.createElement("p");
+								const descElem = document.createElement("div");
+								descElem.setAttribute("class", "results-counter");
 								const descElemChild1 = document.createElement("span");
 								if (nResults === 0) {
 									descElemChild1.textContent = "何も見つかりませんでした - \"";
@@ -134,7 +127,6 @@ async function init() {
 								const entryElem = createEntryElem(entry);
 								
 								searchResultsChild.appendChild(entryElem);
-								searchResultsChild.appendChild(document.createElement("hr"));
 								
 								nEntryElems += 1;
 								if (nEntryElems === MAX_ENTRY_ELEMS) {
@@ -155,6 +147,9 @@ async function init() {
 	}
 	
 	function createEntryElem(entry) {
+		const entryElem = document.createElement("div");
+		entryElem.setAttribute("class", "entry");
+		
 		const midashigo = entry.word;
 		const pronunciations = entry.pronunciations;
 		
@@ -163,11 +158,14 @@ async function init() {
 		
 		const leftBraceSpan = document.createElement("span");
 		const rightBraceSpan = document.createElement("span");
+		leftBraceSpan.setAttribute("class", "entry-title-bracket");
+		rightBraceSpan.setAttribute("class", "entry-title-bracket");
 		leftBraceSpan.textContent = "「";
 		rightBraceSpan.textContent = "」";
 		const midashigoSpan = document.createElement("span");
 		midashigoSpan.textContent = midashigo;
 		const midashigoElem = document.createElement("span");
+		midashigoElem.setAttribute("class", "entry-title");
 		midashigoElem.appendChild(leftBraceSpan);
 		midashigoElem.appendChild(midashigoSpan);
 		midashigoElem.appendChild(rightBraceSpan);
@@ -185,18 +183,17 @@ async function init() {
 			
 			const pronunciationElem = createAccentElem(pronunciation.accent, pronunciation.tokenizedKana);
 			const pronunciationTd = document.createElement("td");
-			pronunciationTd.setAttribute("style", "padding-top:5px;padding-bottom:5px;");
+			pronunciationTd.setAttribute("class", "data-content");
 			pronunciationTd.appendChild(pronunciationElem);
 			
 			const sourcesElem = document.createElement("small");
 			sourcesElem.textContent = " ×" + sources.length;
-			sourcesElem.setAttribute("style", "text-align:center;");
-			sourcesElem.setAttribute("style", "color:#999999;");
+			sourcesElem.setAttribute("class", "source-counter");
 			const sourceCountElem = document.createElement("small");
 			const sourceCountElem2 = document.createElement("small");
 			sourceCountElem.appendChild(sourceCountElem2);
 			sourceCountElem2.textContent = " " + sources.join(", ");
-			sourceCountElem2.setAttribute("style", "text-align:center;");
+			sourceCountElem2.setAttribute("class", "sources");
 			sourcesElem.appendChild(sourceCountElem);
 			pronunciationTd.appendChild(sourcesElem);
 			
@@ -207,8 +204,9 @@ async function init() {
 		mainTableTr.appendChild(pronunciationTable);
 		
 		mainTable.appendChild(mainTableTr);
+		entryElem.appendChild(mainTable);
 		
-		return mainTable;
+		return entryElem;
 	}
 	
 	function createAccentElem(accent, tokenizedKana) {
