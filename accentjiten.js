@@ -190,10 +190,10 @@ async function init() {
 			sourcesElem.textContent = " ×" + sources.length;
 			sourcesElem.setAttribute("class", "source-counter");
 			const sourceCountElem = document.createElement("small");
+			sourceCountElem.setAttribute("class", "sources");
 			const sourceCountElem2 = document.createElement("small");
 			sourceCountElem.appendChild(sourceCountElem2);
 			sourceCountElem2.textContent = " " + sources.join(", ");
-			sourceCountElem2.setAttribute("class", "sources");
 			sourcesElem.appendChild(sourceCountElem);
 			pronunciationTd.appendChild(sourcesElem);
 			
