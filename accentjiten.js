@@ -156,19 +156,11 @@ async function init() {
 		const mainTable = document.createElement("table");
 		const mainTableTr = document.createElement("tr");
 		
-		const leftBraceSpan = document.createElement("span");
-		const rightBraceSpan = document.createElement("span");
-		leftBraceSpan.setAttribute("class", "entry-title-bracket");
-		rightBraceSpan.setAttribute("class", "entry-title-bracket");
-		leftBraceSpan.textContent = "「";
-		rightBraceSpan.textContent = "」";
 		const midashigoSpan = document.createElement("span");
 		midashigoSpan.textContent = midashigo;
 		const midashigoElem = document.createElement("span");
 		midashigoElem.setAttribute("class", "entry-title");
-		midashigoElem.appendChild(leftBraceSpan);
 		midashigoElem.appendChild(midashigoSpan);
-		midashigoElem.appendChild(rightBraceSpan);
 		const midashigoTd = document.createElement("td");
 		midashigoTd.appendChild(midashigoElem);
 		mainTableTr.appendChild(midashigoTd);
