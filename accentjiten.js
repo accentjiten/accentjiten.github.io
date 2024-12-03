@@ -179,6 +179,8 @@ async function init() {
 			const pronunciation = pronunciations[i];
 			const sources = pronunciation.sources;
 			
+			const subtable = document.createElement("table");
+			const subtableTr = document.createElement("tr");
 			const tableTr = document.createElement("tr");
 			
 			const pronunciationElem = createAccentElem(pronunciation.accent, pronunciation.tokenizedKana);
@@ -186,18 +188,25 @@ async function init() {
 			pronunciationTd.setAttribute("class", "data-content");
 			pronunciationTd.appendChild(pronunciationElem);
 			
-			const sourcesElem = document.createElement("small");
-			sourcesElem.textContent = " ×" + sources.length;
-			sourcesElem.setAttribute("class", "source-counter");
-			const sourceCountElem = document.createElement("small");
-			sourceCountElem.setAttribute("class", "sources");
-			const sourceCountElem2 = document.createElement("small");
-			sourceCountElem.appendChild(sourceCountElem2);
-			sourceCountElem2.textContent = " " + sources.join(", ");
-			sourcesElem.appendChild(sourceCountElem);
-			pronunciationTd.appendChild(sourcesElem);
+			const sourcesCounterElem = document.createElement("span");
+			sourcesCounterElem.setAttribute("class", "source-counter");
+			sourcesCounterElem.textContent = "×" + sources.length;
+			const sourcesCounterTd = document.createElement("td");
+			sourcesCounterTd.appendChild(sourcesCounterElem);
 			
-			tableTr.appendChild(pronunciationTd);
+			const sourcesElem = document.createElement("span");
+			sourcesElem.setAttribute("class", "sources");
+			sourcesElem.textContent = " " + sources.join(", ");
+			const sourcesElemTd = document.createElement("td");
+			sourcesElemTd.appendChild(sourcesElem);
+			
+			subtable.appendChild(subtableTr);
+			
+			subtableTr.appendChild(pronunciationTd);
+			subtableTr.appendChild(sourcesCounterTd);
+			subtableTr.appendChild(sourcesElemTd);
+			
+			tableTr.appendChild(subtableTr);
 			
 			pronunciationTable.appendChild(tableTr);
 		}
