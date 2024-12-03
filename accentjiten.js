@@ -80,7 +80,7 @@ async function init() {
 			}
 			
 			case "loaderror": {
-				loadingMsg.innerHTML = "Error";
+				titleElem.innerHTML = "accentjiten [alpha]<br><br>Error";
 				break;
 			}
 			
