@@ -6,14 +6,16 @@ Copyright (c) 2024 accentjiten
 
 */
 
-init().then(
+
+
+init(this).then(
 	() => { },
 	(error) => {
 		console.error(error);
 	}
 );
 
-async function init() {
+async function init(mainScope) {
 	"use strict";
 	
 	const titleElem = document.getElementsByTagName("h1")[0];
@@ -44,6 +46,10 @@ async function init() {
 	const QUERY_MAX_LENGTH = 50;
 	const MAX_ENTRY_ELEMS = 500;
 	
+	let searchResultsConjugations;
+	
+	mainScope.processSearchResultConjugations = processSearchResultConjugations;
+	
 	function handleWorkerResponse(data) {
 		switch (data.name) {
 			
@@ -54,6 +60,7 @@ async function init() {
 				const input = document.createElement("input");
 				input.setAttribute("type", "text");
 				input.setAttribute("placeholder", "単語を検索 - Search...");
+				input.setAttribute("tabindex", "0");
 				inputDiv.appendChild(input);
 				document.body.appendChild(inputDiv);
 				searchResults = document.createElement("main");
@@ -73,6 +80,14 @@ async function init() {
 					} else {
 						searchQuery = query;
 						worker.postMessage({name: "searchstart", query: query, searchID: searchID});
+					}
+				});
+				document.addEventListener("keydown", (event) => {
+					if (!event.altKey && !event.ctrlKey && !event.isComposing
+							&& document.activeElement !== input && event.key === '/') {
+						input.focus();
+						input.setSelectionRange(input.value.length, input.value.length);
+						event.preventDefault();
 					}
 				});
 				input.focus();
@@ -96,6 +111,7 @@ async function init() {
 							if (searchResultsChild) {
 								searchResults.removeChild(searchResultsChild);
 							}
+							searchResultsConjugations = [];
 							searchResultsChild = document.createElement("span");
 							
 							if (searchQuery) {
@@ -125,6 +141,13 @@ async function init() {
 						if (entries) {
 							for (const entry of entries) {
 								const entryElem = createEntryElem(entry);
+								
+								const conjugations = entry.conjugations;
+								if (conjugations) {
+									searchResultsConjugations.push(
+										{entryElem: entryElem, conjugations: conjugations});
+									processSearchResultConjugations(searchResultsConjugations.length - 1, true);
+								}
 								
 								searchResultsChild.appendChild(entryElem);
 								
@@ -245,6 +268,94 @@ async function init() {
 		elem.appendChild(div);
 		
 		return elem;
+	}
+	
+	function processSearchResultConjugations(index, initializing) {
+		const obj = searchResultsConjugations[index];
+		const entryElem = obj.entryElem;
+		const conjugations = obj.conjugations;
+		
+		const isVerb = conjugations.length == 11;
+		const btnTextShow = isVerb
+			? "活用形を表示 - Show conjugation▼"
+			: "活用形を表示 - Show inflection▼";
+		const btnTextHide = isVerb
+			? "活用形を非表示 - Hide conjugation▲"
+			: "活用形を非表示 - Hide inflection▲";
+		
+		if (initializing && !obj.btnElem) {
+			const btnElem = document.createElement("a");
+			btnElem.setAttribute("class", "conj-button");
+			btnElem.setAttribute("role", "button");
+			btnElem.setAttribute("tabindex", "0");
+			btnElem.setAttribute("href", "#");
+			btnElem.setAttribute("onclick", "processSearchResultConjugations(" + index + "); return false;");
+			btnElem.textContent = btnTextShow;
+			obj.btnElem = btnElem;
+			obj.collapsed = true;
+			entryElem.appendChild(btnElem);
+		} else {
+			const btnElem = obj.btnElem;
+			const collapsed = obj.collapsed;
+			
+			if (collapsed) {
+				btnElem.textContent = btnTextHide;
+				obj.collapsed = false;
+				
+				const headers = isVerb
+					? [ "～ます形", "～て形", "～た形", "～ない形", "～なかった形", "～ば形",
+						"使役形", "受身形", "命令形", "可能形", "～う形" ]
+					: [ "～いです形", "～くて形", "～かった形", "～くない形", "～くなかった形",
+						"～ければ形", "～。形", "く形" ];
+				
+				const tableElem = document.createElement("table");
+				tableElem.setAttribute("class", "conj-table");
+				
+				const sourceTr = document.createElement("tr");
+				const sourceTd = document.createElement("td");
+				sourceTd.setAttribute("class", "sources");
+				sourceTr.setAttribute("style", "text-align:center;border-top:none;border-left:none;border-right:none;");
+				sourceTd.setAttribute("style", "text-align:center;border-top:none;border-left:none;border-right:none;");
+				sourceTd.setAttribute("colspan", "2");
+				sourceTd.textContent = "(OJAD)";
+				sourceTr.appendChild(sourceTd);
+				tableElem.appendChild(sourceTr);
+				
+				for (let i = 0; i < headers.length; i++) {
+					const header = headers[i];
+					const conjugation = conjugations[i];
+					
+					const conjugationTr = document.createElement("tr");
+					
+					const headerTd = document.createElement("td");
+					headerTd.textContent = headers[i];
+					conjugationTr.appendChild(headerTd);
+					
+					const conjugationTd = document.createElement("td");
+					const subtable = document.createElement("table");
+					for (const pronunciation of conjugation) {
+						const pronunciationElem =
+							createAccentElem(pronunciation.accent, pronunciation.tokenizedKana);
+						const pronunciationTr = document.createElement("tr");
+						pronunciationTr.appendChild(pronunciationElem);
+						subtable.appendChild(pronunciationTr);
+					}
+					conjugationTd.appendChild(subtable);
+					conjugationTr.appendChild(conjugationTd);
+					tableElem.appendChild(conjugationTr);
+				}
+				obj.tableElem = tableElem;
+				entryElem.appendChild(tableElem);
+				
+			} else {
+				if (obj.tableElem && entryElem.contains(obj.tableElem)) {
+					entryElem.removeChild(obj.tableElem);
+				}
+				btnElem.textContent = btnTextShow;
+				obj.collapsed = true;
+			}
+		}
+		
 	}
 	
 }
