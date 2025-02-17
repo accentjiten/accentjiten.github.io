@@ -19,7 +19,7 @@ async function init(mainScope) {
 	"use strict";
 	
 	const titleElem = document.getElementsByTagName("h1")[0];
-	titleElem.innerHTML = "accentjiten [alpha]<br><br>読み込み中...<br>Loading...";
+	titleElem.innerHTML = "accentjiten [beta]<br><br>読み込み中...<br>Loading...";
 	
 	const worker = (() => {
 		let error = null;
@@ -54,7 +54,7 @@ async function init(mainScope) {
 		switch (data.name) {
 			
 			case "loadsuccess": {
-				titleElem.innerHTML = "accentjiten [alpha]";
+				titleElem.innerHTML = "accentjiten [beta]";
 				const inputDiv = document.createElement("div");
 				inputDiv.setAttribute("class", "search-bar");
 				const input = document.createElement("input");
@@ -95,7 +95,7 @@ async function init(mainScope) {
 			}
 			
 			case "loaderror": {
-				titleElem.innerHTML = "accentjiten [alpha]<br><br>Error";
+				titleElem.innerHTML = "accentjiten [beta]<br><br>Error";
 				break;
 			}
 			
