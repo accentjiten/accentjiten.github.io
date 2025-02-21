@@ -2,7 +2,7 @@
 
 accentjiten - Japanese pitch accent dictionary
 https://github.com/accentjiten
-Copyright (c) 2024 accentjiten
+Copyright (c) 2024-2025 accentjiten
 
 */
 
