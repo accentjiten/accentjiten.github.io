@@ -289,7 +289,8 @@ async function init(mainScope) {
 			btnElem.setAttribute("role", "button");
 			btnElem.setAttribute("tabindex", "0");
 			btnElem.setAttribute("href", "#");
-			btnElem.setAttribute("onclick", "processSearchResultConjugations(" + index + "); return false;");
+			btnElem.setAttribute("onclick", "javascript:;");
+			btnElem.onclick = () => { processSearchResultConjugations(index); return false; }
 			btnElem.textContent = btnTextShow;
 			obj.btnElem = btnElem;
 			obj.collapsed = true;
