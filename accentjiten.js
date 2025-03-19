@@ -288,8 +288,7 @@ async function init(mainScope) {
 			btnElem.setAttribute("class", "conj-button");
 			btnElem.setAttribute("role", "button");
 			btnElem.setAttribute("tabindex", "0");
-			btnElem.setAttribute("href", "#");
-			btnElem.setAttribute("onclick", "javascript:;");
+			btnElem.setAttribute("href", "javascript:;");
 			btnElem.onclick = () => { processSearchResultConjugations(index); return false; }
 			btnElem.textContent = btnTextShow;
 			obj.btnElem = btnElem;
