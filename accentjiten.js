@@ -6,8 +6,6 @@ Copyright (c) 2024-2025 accentjiten
 
 */
 
-
-
 init().then(
 	() => { },
 	(error) => {
