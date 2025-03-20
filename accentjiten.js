@@ -8,14 +8,14 @@ Copyright (c) 2024-2025 accentjiten
 
 
 
-init(this).then(
+init().then(
 	() => { },
 	(error) => {
 		console.error(error);
 	}
 );
 
-async function init(mainScope) {
+async function init() {
 	"use strict";
 	
 	const titleElem = document.getElementsByTagName("h1")[0];
@@ -48,8 +48,6 @@ async function init(mainScope) {
 	
 	let searchResultsConjugations;
 	
-	mainScope.processSearchResultConjugations = processSearchResultConjugations;
-	
 	function handleWorkerResponse(data) {
 		switch (data.name) {
 			
@@ -72,11 +70,11 @@ async function init(mainScope) {
 					if (query.length === 0) {
 						searchQuery = null;
 						handleWorkerResponse(
-							{name: "searchresults", results: {searchID: searchID, end: true, nResults: 0}});
+							{name: "searchresults", results: {searchID: searchID, end: true, nTotalResults: 0}});
 					} else if (query.length > QUERY_MAX_LENGTH) {
 						searchQuery = query.substring(0, QUERY_MAX_LENGTH) + "...";
 						handleWorkerResponse(
-							{name: "searchresults", results: {searchID: searchID, end: true, nResults: 0}});
+							{name: "searchresults", results: {searchID: searchID, end: true, nTotalResults: 0}});
 					} else {
 						searchQuery = query;
 						worker.postMessage({name: "searchstart", query: query, searchID: searchID});
@@ -103,7 +101,7 @@ async function init(mainScope) {
 				const results = data.results;
 				const end = results.end;
 				const entries = results.entries;
-				const nResults = results.nResults;
+				const nTotalResults = results.nTotalResults;
 				if (results.searchID === searchID) {
 					if (end || (entries && entries.length > 0)) {
 						
@@ -118,12 +116,12 @@ async function init(mainScope) {
 								const descElem = document.createElement("div");
 								descElem.setAttribute("class", "results-counter");
 								const descElemChild1 = document.createElement("span");
-								if (nResults === 0) {
+								if (nTotalResults === 0) {
 									descElemChild1.textContent = "何も見つかりませんでした - \"";
-								} else if (nResults > MAX_ENTRY_ELEMS) {
+								} else if (nTotalResults > MAX_ENTRY_ELEMS) {
 									descElemChild1.textContent = MAX_ENTRY_ELEMS + "件を表示中 - \"";
 								} else {
-									descElemChild1.textContent = nResults + "件 - \"";
+									descElemChild1.textContent = nTotalResults + "件 - \"";
 								}
 								const descElemChild2 = document.createElement("b");
 								descElemChild2.textContent = searchQuery;

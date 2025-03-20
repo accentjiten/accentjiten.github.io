@@ -318,7 +318,7 @@ var AccentJiten = (() => {
 				return {
 					searchID: this.searchID,
 					end: exactMatchIndex === nExactMatches && nonExactMatchIndex === nNonExactMatches,
-					nResults: nExactMatches + nNonExactMatches,
+					nTotalResults: nExactMatches + nNonExactMatches,
 					entries: results
 				};
 			}
