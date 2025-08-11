@@ -334,11 +334,9 @@ var AccentJiten = (() => {
 			const pronunciations = AJ.pronunciationArray_toObject(data, syllablePool, pronunciationArrayOffset);
 			const conjugationsOffset = AJ.entry_getConjugations_pronunciationArrayArrayOffset(data, entryOffset);
 			const conjugations = AJ.pronunciationArrayArray_toObject(data, syllablePool, conjugationsOffset);
-			const result = { word: word, pronunciations: pronunciations };
-			if (conjugations.length > 0) {
-				result.conjugations = conjugations;
-			}
-			return result;
+			return conjugations.length > 0
+				? { word: word, pronunciations: pronunciations, conjugations: conjugations }
+				: { word: word, pronunciations: pronunciations };
 		}
 		
 		static pronunciationArrayArray_toObject(data, syllablePool, pronunciationArrayArrayOffset) {
@@ -375,15 +373,12 @@ var AccentJiten = (() => {
 			const accent = AJ.string_get(data, stringOffset);
 			const sourceArrayOffset = AJ.pronunciation_getSources_sourceArrayOffset(data, pronunciationOffset);
 			const sources = AJ.sourceArray_toObject(data, sourceArrayOffset);
-			const result = {
+			return {
 				accent: accent,
 				kana: syllableArray.map(x => x.value).join(""),
-				tokenizedKana: syllableArray
+				tokenizedKana: syllableArray,
+				sources: sources
 			};
-			if (sources.length > 0) {
-				result.sources = sources;
-			}
-			return result;
 		}
 		
 		static syllableArray_toObject(data, syllablePool, syllableArrayOffset) {
@@ -422,19 +417,46 @@ var AccentJiten = (() => {
 		}
 		
 		static matchWordVariants(data, entryOffset, query) {
+			query = query.replace(/＊/g, "*");
+			query = query.replace(/\*+/g, "*");
+			
+			const leadingAsterisk = /^\*+/.test(query);
+			const trailingAsterisk = /\*+$/.test(query);
+			const middleAsterisk = /(?<!^)\*+(?!$)/.test(query);
+			
+			const wildcard = leadingAsterisk || trailingAsterisk || middleAsterisk;
+			
+			query = query.replace(/\*/g, "");
+			
 			const stringArrayOffset = AJ.entry_getWordVariants_stringArrayOffset(data, entryOffset);
 			const stringArrayLength = AJ.stringArray_getLength(data, stringArrayOffset);
 			let anyNonExactMatch = false;
-			for (let i = 0; i < stringArrayLength; i++) {
-				const stringOffset = AJ.stringArray_getString_stringOffset(data, stringArrayOffset, i);
-				const match = AJ.matchWordVariant(data, stringOffset, query);
-				switch (match) {
-					case AJ.NO_MATCH: break;
-					case AJ.EXACT_MATCH: return AJ.EXACT_MATCH;
-					case AJ.NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
+			
+			if (middleAsterisk || (leadingAsterisk && trailingAsterisk)) {
+				//todo
+			} else if (leadingAsterisk) {
+				for (let i = 0; i < stringArrayLength; i++) {
+					const stringOffset = AJ.stringArray_getString_stringOffset(data, stringArrayOffset, i);
+					const match = AJ.matchWordVariantReverse(data, stringOffset, query);
+					switch (match) {
+						case AJ.NO_MATCH: break;
+						case AJ.EXACT_MATCH: return wildcard ?  AJ.NON_EXACT_MATCH : AJ.EXACT_MATCH;
+						case AJ.NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
+					}
 				}
+				return anyNonExactMatch ? AJ.NON_EXACT_MATCH : AJ.NO_MATCH;
+			} else {
+				for (let i = 0; i < stringArrayLength; i++) {
+					const stringOffset = AJ.stringArray_getString_stringOffset(data, stringArrayOffset, i);
+					const match = AJ.matchWordVariant(data, stringOffset, query);
+					switch (match) {
+						case AJ.NO_MATCH: break;
+						case AJ.EXACT_MATCH: return wildcard ?  AJ.NON_EXACT_MATCH : AJ.EXACT_MATCH;
+						case AJ.NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
+					}
+				}
+				return anyNonExactMatch ? AJ.NON_EXACT_MATCH : AJ.NO_MATCH;
 			}
-			return anyNonExactMatch ? AJ.NON_EXACT_MATCH : AJ.NO_MATCH;
 		}
 		
 		static matchWordVariant(data, stringOffset, query) {
@@ -449,55 +471,86 @@ var AccentJiten = (() => {
 			return stringLength === queryLength ? AJ.EXACT_MATCH : AJ.NON_EXACT_MATCH;
 		}
 		
+		static matchWordVariantReverse(data, stringOffset, query) {
+			const stringLength = AJ.string_getLength(data, stringOffset);
+			const queryLength = query.length;
+			for (let i = 0; i < queryLength; i++) {
+				if (i >= stringLength) return null;
+				const stringCharCode = AJ.string_getCharCode(data, stringOffset, stringLength - 1 - i);
+				const queryCharCode = query.charCodeAt(queryLength - 1 - i);
+				if (stringCharCode !== queryCharCode) return AJ.NO_MATCH;
+			}
+			return stringLength === queryLength ? AJ.EXACT_MATCH : AJ.NON_EXACT_MATCH;
+		}
+		
 		static createSyllableTrie(syllableFormPool, query) {
-			const formattedQuery = query.replace(/\s/g, "").toUpperCase();
+			query = query.replace(/\s/g, "").toUpperCase();
+			query = query.replace(/＊/g, "*");
+			query = query.replace(/\*+/g, "*");
 			
-			const nodes = new Array(formattedQuery.length);
-			for (let i = 0; i < formattedQuery.length; i++)
+			const leadingAsterisk = /^\*+/.test(query);
+			const trailingAsterisk = /\*+$/.test(query);
+			const middleAsterisk = /(?<!^)\*+(?!$)/.test(query);
+			
+			query = query.replace(/\*/g, "");
+			
+			const nodes = new Array(query.length);
+			for (let i = 0; i < query.length; i++) {
 				nodes[i] = { children: { }, isLeaf: false, isCompleteMatchLeaf: false };
-			
-			for (let i = 0; i < formattedQuery.length; i++) {
-				const node = nodes[i];
-				const nodeChildren = node.children;
-				for (let j = 0; j < syllableFormPool.length; j++) {
-					const syllableForm = syllableFormPool[j];
-					const childNodes = new Set();
-					for (const substring of syllableForm.romaji) {
-						const substringMatch = AJ.matchSubstring(formattedQuery, i, substring);
-						if (substringMatch) {
-							const childNode = i + substringMatch.nMatchedChars < nodes.length
-								? nodes[i + substringMatch.nMatchedChars]
-								: { children: { }, isLeaf: true, isCompleteMatchLeaf: substringMatch.isCompleteMatch };
-							childNodes.add(childNode);
-						}
-					}
-					{
-						const hiraganaSyllable = syllableForm.hiraganaSyllable;
-						const substringMatch = AJ.matchSubstring(formattedQuery, i, hiraganaSyllable);
-						if (substringMatch) {
-							const childNode = i + substringMatch.nMatchedChars < nodes.length
-								? nodes[i + substringMatch.nMatchedChars]
-								: { children: { }, isLeaf: true, isCompleteMatchLeaf: substringMatch.isCompleteMatch };
-							childNodes.add(childNode);
-						}
-					}
-					{
-						const katakanaSyllable = syllableForm.katakanaSyllable;
-						const substringMatch = AJ.matchSubstring(formattedQuery, i, katakanaSyllable);
-						if (substringMatch) {
-							const childNode = i + substringMatch.nMatchedChars < nodes.length
-								? nodes[i + substringMatch.nMatchedChars]
-								: { children: { }, isLeaf: true, isCompleteMatchLeaf: substringMatch.isCompleteMatch };
-							childNodes.add(childNode);
-						}
-					}
-					if (childNodes.size > 0) {
-						nodeChildren[j] = childNodes;
-					}
-				}
 			}
 			
-			return nodes;
+			if (middleAsterisk || (leadingAsterisk && trailingAsterisk)) {
+				//todo
+				return { nodes: nodes, wildcard: true };
+			} else if (leadingAsterisk) {
+				for (let i = query.length - 1; i >= 0; i--) {
+					const node = nodes[i];
+					const nodeChildren = node.children;
+					for (let j = 0; j < syllableFormPool.length; j++) {
+						const syllableForm = syllableFormPool[j];
+						const childNodes = new Set();
+						for (const substring of [...syllableForm.romaji,
+								syllableForm.hiraganaSyllable, syllableForm.katakanaSyllable]) {
+							const substringMatch = AJ.matchSubstringReverse(query, i, substring);
+							if (substringMatch) {
+								const childNode = i - substringMatch.nMatchedChars >= 0
+									? nodes[i - substringMatch.nMatchedChars]
+									: { children: { }, isLeaf: true, isCompleteMatchLeaf: substringMatch.isCompleteMatch };
+								childNodes.add(childNode);
+							}
+						}
+						if (childNodes.size > 0) {
+							nodeChildren[j] = childNodes;
+						}
+					}
+				}
+				return { nodes: nodes, wildcard: true, reverse: true };
+			} else {
+				for (let i = 0; i < query.length; i++) {
+					const node = nodes[i];
+					const nodeChildren = node.children;
+					for (let j = 0; j < syllableFormPool.length; j++) {
+						const syllableForm = syllableFormPool[j];
+						const childNodes = new Set();
+						for (const substring of [...syllableForm.romaji,
+								syllableForm.hiraganaSyllable, syllableForm.katakanaSyllable]) {
+							const substringMatch = AJ.matchSubstring(query, i, substring);
+							if (substringMatch) {
+								const childNode = i + substringMatch.nMatchedChars < nodes.length
+									? nodes[i + substringMatch.nMatchedChars]
+									: { children: { }, isLeaf: true, isCompleteMatchLeaf: substringMatch.isCompleteMatch };
+								childNodes.add(childNode);
+							}
+						}
+						if (childNodes.size > 0) {
+							nodeChildren[j] = childNodes;
+						}
+					}
+				}
+				return trailingAsterisk
+					? { nodes: nodes, wildcard: true }
+					: { nodes: nodes }
+			}
 		}
 		
 		static matchSubstring(query, index, substring) {
@@ -508,22 +561,47 @@ var AccentJiten = (() => {
 			return { nMatchedChars: substring.length, isCompleteMatch: true };
 		}
 		
+		static matchSubstringReverse(query, index, substring) {
+			for (let i = substring.length - 1; i >= 0; i--) {
+				if (index - (substring.length - 1 - i) < 0) return { nMatchedChars: substring.length - 1 - i, isCompleteMatch: false };
+				if (query.charAt(index - (substring.length - 1 - i)) !== substring.charAt(i)) return null;
+			}
+			return { nMatchedChars: substring.length, isCompleteMatch: true };
+		}
+		
 		static matchSyllables(data, syllablePool, entryOffset, syllableTrie) {
-			const nodes = syllableTrie;
+			const nodes = syllableTrie.nodes;
+			const wildcard = syllableTrie.wildcard;
+			const reverse = syllableTrie.reverse;
 			if (nodes.length === 0) return AJ.NO_MATCH;
 			const syllableArrayArrayOffset = AJ.entry_getReadings_syllableArrayArrayOffset(data, entryOffset);
 			const syllableArrayArrayLength = AJ.syllableArrayArray_getLength(data, syllableArrayArrayOffset);
 			let anyNonExactMatch = false;
-			for (let i = 0; i < syllableArrayArrayLength; i++) {
-				const syllableArrayOffset =
-					AJ.syllableArrayArray_getSyllableArray_syllableArrayOffset(data, syllableArrayArrayOffset, i);
-				const syllableArrayLength = AJ.syllableArray_getLength(data, syllableArrayOffset);
-				const match = AJ.matchSyllablesRecursive(
-					data, syllablePool, nodes[0], syllableArrayOffset, 0, syllableArrayLength);
-				switch (match) {
-					case AJ.NO_MATCH: break;
-					case AJ.EXACT_MATCH: return AJ.EXACT_MATCH;
-					case AJ.NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
+			if (!reverse) {
+				for (let i = 0; i < syllableArrayArrayLength; i++) {
+					const syllableArrayOffset =
+						AJ.syllableArrayArray_getSyllableArray_syllableArrayOffset(data, syllableArrayArrayOffset, i);
+					const syllableArrayLength = AJ.syllableArray_getLength(data, syllableArrayOffset);
+					const match = AJ.matchSyllablesRecursive(
+						data, syllablePool, nodes[0], syllableArrayOffset, 0, syllableArrayLength);
+					switch (match) {
+						case AJ.NO_MATCH: break;
+						case AJ.EXACT_MATCH: return wildcard ?  AJ.NON_EXACT_MATCH : AJ.EXACT_MATCH;
+						case AJ.NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
+					}
+				}
+			} else {
+				for (let i = syllableArrayArrayLength - 1; i >= 0; i--) {
+					const syllableArrayOffset =
+						AJ.syllableArrayArray_getSyllableArray_syllableArrayOffset(data, syllableArrayArrayOffset, i);
+					const syllableArrayLength = AJ.syllableArray_getLength(data, syllableArrayOffset);
+					const match = AJ.matchSyllablesRecursiveReverse(
+						data, syllablePool, nodes[nodes.length - 1], syllableArrayOffset, syllableArrayLength - 1);
+					switch (match) {
+						case AJ.NO_MATCH: break;
+						case AJ.EXACT_MATCH: return wildcard ?  AJ.NON_EXACT_MATCH : AJ.EXACT_MATCH;
+						case AJ.NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
+					}
 				}
 			}
 			return anyNonExactMatch ? AJ.NON_EXACT_MATCH : AJ.NO_MATCH;
@@ -547,6 +625,34 @@ var AccentJiten = (() => {
 					? AJ.matchSyllablesRecursive(data, syllablePool, childNode, syllableArrayOffset,
 						syllableArrayIndex + 1, syllableArrayLength)
 					: childNode.isCompleteMatchLeaf && syllableArrayIndex === syllableArrayLength - 1
+						? AJ.EXACT_MATCH : AJ.NON_EXACT_MATCH;
+				switch (match) {
+					case AJ.NO_MATCH: break;
+					case AJ.EXACT_MATCH: return AJ.EXACT_MATCH;
+					case AJ.NON_EXACT_MATCH: { anyNonExactMatch = true; break; }
+				}
+			}
+			return anyNonExactMatch ? AJ.NON_EXACT_MATCH : AJ.NO_MATCH;
+		}
+		
+		static matchSyllablesRecursiveReverse(data, syllablePool, node,
+					syllableArrayOffset, syllableArrayIndex) {
+			if (syllableArrayIndex < 0) {
+				return AJ.NO_MATCH;
+			}
+			const syllablePoolIndex =
+				AJ.syllableArray_getSyllable_syllablePoolIndex(data, syllableArrayOffset, syllableArrayIndex);
+			const syllable = syllablePool[syllablePoolIndex];
+			const childNodes = node.children[syllable.form.poolIndex];
+			if (!childNodes) {
+				return AJ.NO_MATCH;
+			}
+			let anyNonExactMatch = false;
+			for (const childNode of childNodes) {
+				const match = !childNode.isLeaf
+					? AJ.matchSyllablesRecursiveReverse(data, syllablePool, childNode, syllableArrayOffset,
+						syllableArrayIndex - 1)
+					: childNode.isCompleteMatchLeaf && syllableArrayIndex === 0
 						? AJ.EXACT_MATCH : AJ.NON_EXACT_MATCH;
 				switch (match) {
 					case AJ.NO_MATCH: break;
