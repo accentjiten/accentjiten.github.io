@@ -58,10 +58,10 @@ var AccentJiten = (() => {
 			importScripts("lzma.js");
 			
 			const fileInfo = {
-				url: "accentjiten-109.dat.lzma",
+				url: "accentjiten-110.dat.lzma",
 				keyName: "accentjiten.dat.lzma",
-				version: "109",
-				uncompressedSize: 22553467
+				version: "110",
+				uncompressedSize: 22577115
 			};
 			
 			const arrayBuffer = await (async function() {
