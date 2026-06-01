@@ -232,36 +232,47 @@ async function init() {
 	function createAccentElem(accent, tokenizedKana) {
 		const elem = document.createElement("span");
 		
-		const div = document.createElement("div");
-		div.className = "tonetext";
-		
-		const H_CHARCODE = "H".charCodeAt(0);
-		let accentI = 0;
-		for (let i = 0; i < tokenizedKana.length; i++) {
-			const token = tokenizedKana[i];
-			const nextToken = tokenizedKana[i + 1];
-			const tokenIsHigh = accent.charCodeAt(
-				accentI === accent.length - 2 ? accent.length - 1 : accentI)
-					=== H_CHARCODE;
-			const nextTokenIsHigh =
-				token.type !== "mora" ? tokenIsHigh :
-					!nextToken ? accent.charCodeAt(accent.length - 1) === H_CHARCODE :
-						accent.charCodeAt(accentI === accent.length - 3
-							? accent.length - 1 : accentI + 1) === H_CHARCODE;
+		let tokenI = 0;
+		for (const accSplit of accent.split("+")) {
+			const div = document.createElement("div");
+			div.className = "tonetext";
 			
-			const tokenElem = document.createElement("span");
-			tokenElem.textContent = token.value;
-			tokenElem.className = tokenIsHigh
-				? nextTokenIsHigh ? "hightone" : "hightonenextlow"
-				: nextTokenIsHigh ? "lowtonenexthigh" : "lowtone";
-			div.appendChild(tokenElem);
+			const H_CHARCODE = "H".charCodeAt(0);
+			let accentI = 0;
+			const accentN = accSplit.substring(0, accSplit.indexOf("-")).length;
+			while (accentI < accentN) {
+				const token = tokenizedKana[tokenI];
+				const nextToken = tokenizedKana[tokenI + 1];
+				tokenI = tokenI + 1;
+				const tokenIsHigh = accSplit.charCodeAt(
+					accentI === accSplit.length - 2 ? accSplit.length - 1 : accentI)
+						=== H_CHARCODE;
+				const nextTokenIsHigh =
+					token.type !== "mora" ? tokenIsHigh :
+						!nextToken ? accSplit.charCodeAt(accSplit.length - 1) === H_CHARCODE :
+							accSplit.charCodeAt(accentI === accSplit.length - 3
+								? accSplit.length - 1 : accentI + 1) === H_CHARCODE;
+				
+				const tokenElem = document.createElement("span");
+				tokenElem.textContent = token.value;
+				tokenElem.className = tokenIsHigh
+					? nextTokenIsHigh ? "hightone" : "hightonenextlow"
+					: nextTokenIsHigh ? "lowtonenexthigh" : "lowtone";
+				div.appendChild(tokenElem);
+				
+				if (token.type === "mora") {
+					accentI += 1;
+				}
+			}
+			elem.appendChild(div);
 			
-			if (token.type === "mora") {
-				accentI += 1;
+			if (tokenI < tokenizedKana.length) {
+				const nakaguroDiv = document.createElement("div");
+				nakaguroDiv.className = "tonetext";
+				nakaguroDiv.append("・");
+				elem.appendChild(nakaguroDiv);
 			}
 		}
-		
-		elem.appendChild(div);
 		
 		return elem;
 	}
